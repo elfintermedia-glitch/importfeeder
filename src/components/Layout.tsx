@@ -18,7 +18,7 @@ export const Layout: React.FC = () => {
       <div className="w-[240px] bg-[#1E293B] text-white flex flex-col shrink-0">
         <div className="p-6 text-xl font-bold tracking-tight border-b border-[#334155] flex items-center gap-[10px]">
           <div className="w-8 h-8 bg-blue-500 rounded-md grid place-items-center">N</div>
-          <span className="text-lg">Neofeeder Importer</span>
+          <span className="text-lg">Feeder Integrator</span>
         </div>
         <nav className="flex-1 py-5 overflow-y-auto">
           {navigation.map((item) => {
