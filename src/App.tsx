@@ -14,6 +14,7 @@ import { Students } from './pages/Students.tsx';
 import { ProgramStudi } from './pages/ProgramStudi.tsx';
 import { DataPeriode } from './pages/DataPeriode.tsx';
 import { DataDosen } from './pages/DataDosen.tsx';
+import { UpdateAplikasi } from './pages/UpdateAplikasi.tsx';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -48,6 +49,7 @@ const AppRoutes = () => {
         <Route path="periods" element={<DataPeriode />} />
         <Route path="dosen" element={<DataDosen />} />
         <Route path="config" element={<Configuration />} />
+        <Route path="update" element={<UpdateAplikasi />} />
       </Route>
     </Routes>
   );
