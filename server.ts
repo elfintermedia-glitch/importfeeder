@@ -404,12 +404,21 @@ async function startServer() {
     try {
       const execPromise = util.promisify(exec);
       
-      const { stdout, stderr } = await execPromise("git pull && npm install && npm run build");
+      let logs = "";
+      try {
+        const { stdout, stderr } = await execPromise("git pull");
+        logs += "Git pull:\n" + stdout + (stderr ? "\n" + stderr : "") + "\n\n";
+      } catch (gitError: any) {
+        logs += "Git pull dilewati (mungkin bukan git repository atau belum disetup).\n\n";
+      }
+
+      const { stdout, stderr } = await execPromise("npm install && npm run build");
+      logs += "Build Process:\n" + stdout + (stderr ? "\n" + stderr : "");
       
       res.json({ 
         success: true, 
         message: "Aplikasi berhasil diperbarui. Server akan melakukan restart ototmatis.",
-        logs: stdout + (stderr ? "\n" + stderr : "")
+        logs: logs
       });
       
       // Attempt to restart if running under PM2
@@ -426,7 +435,7 @@ async function startServer() {
       console.error("Update failed:", e);
       res.status(500).json({ 
         error: e.message || "Gagal memperbarui aplikasi",
-        logs: e.stdout + "\n" + e.stderr 
+        logs: (e.stdout || "") + "\n" + (e.stderr || "")
       });
     }
   });

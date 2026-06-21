@@ -88,7 +88,7 @@ export const UpdateAplikasi: React.FC = () => {
         <div className="p-8">
           <div className="mb-6">
             <p className="text-gray-700 text-sm leading-relaxed mb-4">
-              Fitur ini akan menghubungkan aplikasi Anda dengan repository GitHub resmi untuk mengunduh dan menerapkan pembaruan sistem, perbaikan bug, dan fitur-fitur terbaru secara langsung.
+              Fitur ini akan menghubungkan aplikasi Anda dengan repository resmi untuk mengunduh dan menerapkan pembaruan sistem, perbaikan bug, dan fitur-fitur terbaru secara langsung.
             </p>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
