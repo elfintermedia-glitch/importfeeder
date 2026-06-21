@@ -40,27 +40,47 @@ export const UpdateAplikasi: React.FC = () => {
         }
       });
       
-      setProgress(80);
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("Stream not supported");
       
-      const data = await response.json();
+      const decoder = new TextDecoder();
+      let done = false;
+      let text = "";
       
-      if (data.logs) {
-        const logLines = data.logs.split('\n');
-        logLines.forEach((line: string) => {
-          if (line.trim()) addLog(line);
-        });
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true });
+          text += chunk;
+          
+          // Memecah chunk berdasarkan baris baru
+          const lines = text.split('\n');
+          // Update logs dengan baris-baris baru, simpan baris terakhir yang belum selesai di buffer 'text'
+          text = lines.pop() || "";
+          
+          lines.forEach(line => {
+            if (line.trim()) {
+               setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${line}`]);
+            }
+          });
+        }
       }
       
+      if (text.trim()) {
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${text}`]);
+      }
+      
+      setProgress(100);
+      
       if (response.ok) {
-        addLog('Pembaruan berhasil diterapkan!');
-        addLog('Server sedang me-restart secara otomatis...');
-        setProgress(100);
+        addLog('Pembaruan selesai.');
         setStatus('success');
-        setMessage(data.message || 'Aplikasi berhasil diperbarui. Server sedang me-restart.');
+        setMessage('Aplikasi berhasil diperbarui. Server sedang me-restart.');
       } else {
-        addLog(`Kesalahan: ${data.error || 'Gagal menerapkan pembaruan'}`);
+        addLog('Kesalahan: Gagal menerapkan pembaruan sepenuhnya.');
         setStatus('error');
-        setMessage(data.error || 'Gagal melakukan pembaruan.');
+        setMessage('Gagal melakukan pembaruan.');
       }
     } catch (err: any) {
       addLog(`Koneksi bermasalah: ${err.message}`);
@@ -165,7 +185,7 @@ export const UpdateAplikasi: React.FC = () => {
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               {loading ? 'Sedang Memperbarui...' : 'Perbarui Aplikasi Sekarang'}
             </button>
-            {loading && <span className="text-sm text-gray-500 animate-pulse">Mengunduh data dari GitHub...</span>}
+            {loading && <span className="text-sm text-gray-500 animate-pulse">Mengunduh pembaruan...</span>}
           </div>
         </div>
       </div>

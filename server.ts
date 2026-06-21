@@ -401,28 +401,54 @@ async function startServer() {
   });
 
   app.post("/api/update-app", requireAuth, async (req: any, res) => {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+    
+    const { spawn } = require('child_process');
+    
+    const runCommand = (command: string) => {
+      return new Promise<void>((resolve, reject) => {
+        res.write(`\n> ${command}\n`);
+        const child = spawn(command, { shell: true });
+
+        child.stdout.on('data', (data: any) => {
+          res.write(data.toString());
+        });
+
+        child.stderr.on('data', (data: any) => {
+          res.write(data.toString());
+        });
+
+        child.on('close', (code: number) => {
+          if (code === 0) {
+            resolve();
+          } else {
+            reject(new Error(`Command '${command}' failed with exit code ${code}`));
+          }
+        });
+      });
+    };
+
     try {
-      const execPromise = util.promisify(exec);
-      
-      let logs = "";
       try {
-        const { stdout, stderr } = await execPromise("git pull");
-        logs += "Git pull:\n" + stdout + (stderr ? "\n" + stderr : "") + "\n\n";
+        await runCommand("git stash && git pull");
       } catch (gitError: any) {
-        logs += "Git pull dilewati (mungkin bukan git repository atau belum disetup).\n\n";
+        res.write(`\nError: ${gitError.message}\nMencoba force update...\n`);
+        try {
+          await runCommand("git reset --hard && git pull");
+        } catch (forceError: any) {
+          res.write(`\nGit pull error: ${forceError.message}. Melewati git pull.\n`);
+        }
       }
 
-      const { stdout, stderr } = await execPromise("npm install && npm run build");
-      logs += "Build Process:\n" + stdout + (stderr ? "\n" + stderr : "");
+      await runCommand("npm install && npm run build");
       
-      res.json({ 
-        success: true, 
-        message: "Aplikasi berhasil diperbarui. Server akan melakukan restart ototmatis.",
-        logs: logs
-      });
+      res.write("\n=== SUCCESS ===\nAplikasi berhasil diperbarui.");
+      res.end();
       
       // Attempt to restart if running under PM2
       setTimeout(() => {
+        const { exec } = require("child_process");
         exec("pm2 restart importer-app || pm2 restart all", (err: any) => {
           if (err) {
             console.error("Failed to restart via PM2, exiting process to allow container restart.");
@@ -433,10 +459,8 @@ async function startServer() {
       
     } catch (e: any) {
       console.error("Update failed:", e);
-      res.status(500).json({ 
-        error: e.message || "Gagal memperbarui aplikasi",
-        logs: (e.stdout || "") + "\n" + (e.stderr || "")
-      });
+      res.write(`\n=== ERROR ===\nGagal memperbarui aplikasi: ${e.message}\n`);
+      res.end();
     }
   });
 
