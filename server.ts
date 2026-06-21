@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import path from "path";
 import crypto from "crypto";
-import { exec } from "child_process";
+import { exec, spawn } from "child_process";
 import util from "util";
 import { createServer as createViteServer } from "vite";
 import cors from "cors";
@@ -404,8 +404,6 @@ async function startServer() {
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Transfer-Encoding', 'chunked');
     
-    const { spawn } = require('child_process');
-    
     const runCommand = (command: string) => {
       return new Promise<void>((resolve, reject) => {
         res.write(`\n> ${command}\n`);
@@ -448,7 +446,6 @@ async function startServer() {
       
       // Attempt to restart if running under PM2
       setTimeout(() => {
-        const { exec } = require("child_process");
         exec("pm2 restart importer-app || pm2 restart all", (err: any) => {
           if (err) {
             console.error("Failed to restart via PM2, exiting process to allow container restart.");
