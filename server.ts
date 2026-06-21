@@ -37,7 +37,7 @@ async function startServer() {
     if (inputUserHash === expectedUserHash && inputPassHash === expectedPassHash) {
       res.json({
         token: "secret-local-token",
-        user: { displayName: "Eko Fachtur", uid: "local-eko" }
+        user: { displayName: "Super Admin", uid: "local-eko" }
       });
     } else {
       res.status(401).json({ error: "Username atau password salah" });
