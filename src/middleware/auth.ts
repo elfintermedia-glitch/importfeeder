@@ -27,8 +27,12 @@ export const requireAuth = async (
     req.dbUser = dbUser;
     
     next();
-  } catch (error) {
-    console.error('Error verifying token:', error);
-    return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+  } catch (error: any) {
+    console.error('Error in requireAuth middleware:', error);
+    if (error.message === 'Invalid token') {
+      return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+    }
+    // Most likely a database connection or schema error
+    return res.status(500).json({ error: 'Database Error: ' + error.message });
   }
 };
