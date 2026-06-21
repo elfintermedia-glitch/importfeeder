@@ -27,7 +27,7 @@ export const UpdateAplikasi: React.FC = () => {
     setMessage('Sedang mengambil data terbaru dari server...');
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       
       addLog('Memulai pembaruan sistem...');
       await new Promise(r => setTimeout(r, 600));
