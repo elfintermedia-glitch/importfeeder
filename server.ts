@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import crypto from "crypto";
 import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import { requireAuth } from "./src/middleware/auth.ts";
@@ -21,7 +22,16 @@ async function startServer() {
 
   app.post("/api/login", async (req, res) => {
     const { username, password } = req.body;
-    if (username === "superadmin" && password === "mendolgosong") {
+    
+    // Hash input credentials using SHA-256 for comparison
+    const inputUserHash = crypto.createHash('sha256').update(username || '').digest('hex');
+    const inputPassHash = crypto.createHash('sha256').update(password || '').digest('hex');
+    
+    // Expected hashes for username and password
+    const expectedUserHash = "186cf774c97b60a1c106ef718d10970a6a06e06bef89553d9ae65d938a886eae";
+    const expectedPassHash = "ff0f7bbea275e3f9aea818cfdc486d0c835531521cb990ff2e9b96bb1d076a80"; 
+
+    if (inputUserHash === expectedUserHash && inputPassHash === expectedPassHash) {
       res.json({
         token: "secret-local-token",
         user: { displayName: "Eko Fachtur", uid: "local-eko" }
@@ -414,7 +424,8 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running locally on http://localhost:${PORT}`);
+    console.log(`Server configured for production domain: https://importer.elfatta-intermedia.com/`);
   });
 }
 
