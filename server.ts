@@ -448,8 +448,12 @@ async function startServer() {
       setTimeout(() => {
         exec("pm2 restart importer-app || pm2 restart all", (err: any) => {
           if (err) {
-            console.error("Failed to restart via PM2, exiting process to allow container restart.");
-            process.exit(0);
+            if (process.env.NODE_ENV === "production") {
+              console.log("Process exiting to allow container to restart...");
+              process.exit(0);
+            } else {
+              console.log("Pembaruan selesai. Silakan restart dev server secara manual jika diperlukan.");
+            }
           }
         });
       }, 2000);
