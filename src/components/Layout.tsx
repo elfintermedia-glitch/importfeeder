@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Settings, Users, Database, ChevronDown, ChevronRight, Building, Calendar, Download } from 'lucide-react';
+import { LogOut, LayoutDashboard, Settings, Users, Database, ChevronDown, ChevronRight, Building, Calendar, Download, FileUp } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 
 export const Layout: React.FC = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [dataMasterOpen, setDataMasterOpen] = useState(true);
+  const [importDataOpen, setImportDataOpen] = useState(true);
 
   const navigation = [
     { name: 'Dashboard Utama', href: '/', icon: LayoutDashboard },
@@ -89,17 +90,33 @@ export const Layout: React.FC = () => {
             )}
           </div>
 
-          <Link
-            to="/students"
-            className={`flex items-center gap-[12px] px-6 py-3 text-sm transition-all border-l-4 ${
-              location.pathname === '/students' 
-                ? 'bg-[#334155] text-white border-blue-500' 
-                : 'text-[#94A3B8] hover:bg-[#334155] hover:text-white border-transparent'
-            }`}
-          >
-            <Users className="h-5 w-5" />
-            <span>Data Mahasiswa Baru</span>
-          </Link>
+          <div className="mt-2">
+            <button
+              onClick={() => setImportDataOpen(!importDataOpen)}
+              className="w-full flex items-center justify-between px-6 py-3 text-sm text-[#94A3B8] hover:bg-[#334155] hover:text-white transition-all border-l-4 border-transparent cursor-pointer"
+            >
+              <div className="flex items-center gap-[12px]">
+                <FileUp className="h-5 w-5" />
+                <span>Import Data</span>
+              </div>
+              {importDataOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </button>
+            {importDataOpen && (
+              <div className="bg-[#0F172A] py-2">
+                <Link
+                  to="/students"
+                  className={`flex items-center gap-[12px] pl-14 pr-6 py-2.5 text-sm transition-all border-l-4 ${
+                    location.pathname === '/students' 
+                      ? 'bg-[#1E293B] text-white border-blue-500' 
+                      : 'text-[#94A3B8] hover:bg-[#1E293B] hover:text-white border-transparent'
+                  }`}
+                >
+                  <Users className="h-4 w-4" />
+                  <span>Data Mahasiswa Baru</span>
+                </Link>
+              </div>
+            )}
+          </div>
           
           <Link
             to="/config"
