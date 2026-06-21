@@ -1,0 +1,6 @@
+{
+  "name": "Neofeeder Importer",
+  "description": "Aplikasi untuk mengimpor dan sinkronisasi data Mahasiswa ke server PDDIKTI Neofeeder melalui file Excel.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
