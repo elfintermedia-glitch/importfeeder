@@ -79,7 +79,6 @@ export const UpdateAplikasi: React.FC = () => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-[#111827]">Update Aplikasi</h1>
-          <p className="text-[#6B7280] mt-1 text-sm">Ambil pembaruan terbaru dari repository GitHub</p>
         </div>
       </div>
 
