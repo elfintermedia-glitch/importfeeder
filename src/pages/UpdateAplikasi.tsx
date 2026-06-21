@@ -29,15 +29,10 @@ export const UpdateAplikasi: React.FC = () => {
     try {
       const token = localStorage.getItem('auth_token');
       
-      addLog('Memulai pembaruan sistem...');
-      await new Promise(r => setTimeout(r, 600));
-      setProgress(10);
+      addLog('Menjalankan proses pembaruan (Git Pull, NPM Install, Build)...');
+      addLog('Mohon tunggu, proses ini memakan waktu beberapa saat...');
+      setProgress(30);
       
-      addLog('Menghubungkan ke server GitHub...');
-      await new Promise(r => setTimeout(r, 800));
-      setProgress(25);
-      
-      addLog('Mengunduh manifest pembaruan...');
       const response = await fetch('/api/update-app', {
         method: 'POST',
         headers: {
@@ -45,21 +40,23 @@ export const UpdateAplikasi: React.FC = () => {
         }
       });
       
-      addLog('Menyesuaikan konfigurasi...');
-      await new Promise(r => setTimeout(r, 800));
-      setProgress(50);
+      setProgress(80);
       
       const data = await response.json();
       
-      addLog('Menerapkan pembaruan (ini mungkin memakan waktu beberapa saat)...');
-      await new Promise(r => setTimeout(r, 1500));
-      setProgress(85);
+      if (data.logs) {
+        const logLines = data.logs.split('\n');
+        logLines.forEach((line: string) => {
+          if (line.trim()) addLog(line);
+        });
+      }
       
       if (response.ok) {
         addLog('Pembaruan berhasil diterapkan!');
+        addLog('Server sedang me-restart secara otomatis...');
         setProgress(100);
         setStatus('success');
-        setMessage(data.message || 'Aplikasi berhasil diperbarui ke versi terbaru.');
+        setMessage(data.message || 'Aplikasi berhasil diperbarui. Server sedang me-restart.');
       } else {
         addLog(`Kesalahan: ${data.error || 'Gagal menerapkan pembaruan'}`);
         setStatus('error');

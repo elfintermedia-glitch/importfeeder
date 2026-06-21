@@ -2,6 +2,8 @@ import "dotenv/config";
 import express from "express";
 import path from "path";
 import crypto from "crypto";
+import { exec } from "child_process";
+import util from "util";
 import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import { requireAuth } from "./src/middleware/auth.ts";
@@ -400,12 +402,32 @@ async function startServer() {
 
   app.post("/api/update-app", requireAuth, async (req: any, res) => {
     try {
-      // Simulate taking a few seconds to update from github
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      res.json({ success: true, message: "Aplikasi berhasil diperbarui ke versi terbaru dari GitHub." });
+      const execPromise = util.promisify(exec);
+      
+      const { stdout, stderr } = await execPromise("git pull && npm install && npm run build");
+      
+      res.json({ 
+        success: true, 
+        message: "Aplikasi berhasil diperbarui. Server akan melakukan restart ototmatis.",
+        logs: stdout + (stderr ? "\n" + stderr : "")
+      });
+      
+      // Attempt to restart if running under PM2
+      setTimeout(() => {
+        exec("pm2 restart importer-app || pm2 restart all", (err: any) => {
+          if (err) {
+            console.error("Failed to restart via PM2, exiting process to allow container restart.");
+            process.exit(0);
+          }
+        });
+      }, 2000);
+      
     } catch (e: any) {
-      console.error(e);
-      res.status(500).json({ error: e.message || "Gagal memperbarui aplikasi" });
+      console.error("Update failed:", e);
+      res.status(500).json({ 
+        error: e.message || "Gagal memperbarui aplikasi",
+        logs: e.stdout + "\n" + e.stderr 
+      });
     }
   });
 
