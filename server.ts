@@ -10,7 +10,7 @@ import { eq } from "drizzle-orm";
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT || 3000; // Tetap 3000 di environment lokal ini agar preview tidak error. Di aaPanel, Anda bisa mengubahnya.
 
   app.use(cors());
   app.use(express.json());
