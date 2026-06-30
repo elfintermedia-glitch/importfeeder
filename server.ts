@@ -8,7 +8,7 @@ import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import { requireAuth } from "./src/middleware/auth.ts";
 import { db } from "./src/db/index.ts";
-import { neofeederConfig, students, prodi, periode, dosen } from "./src/db/schema.ts";
+import { neofeederConfig, students, prodi, periode, dosen, agama, wilayah } from "./src/db/schema.ts";
 import { eq } from "drizzle-orm";
 
 async function startServer() {
@@ -16,7 +16,8 @@ async function startServer() {
   const PORT = process.env.PORT || 3000; // Tetap 3000 di environment lokal ini agar preview tidak error. Di aaPanel, Anda bisa mengubahnya.
 
   app.use(cors());
-  app.use(express.json());
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   // API Routes
   app.get("/api/health", (req, res) => {
@@ -235,6 +236,96 @@ async function startServer() {
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: "Failed to bulk add dosen" });
+    }
+  });
+
+  app.get("/api/agama", requireAuth, async (req: any, res) => {
+    const userId = req.dbUser.id;
+    try {
+      const allAgama = await db.query.agama.findMany({
+        where: eq(agama.userId, userId),
+        orderBy: (agama, { asc }) => [asc(agama.id_agama)]
+      });
+      res.json({ agama: allAgama });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to fetch agama" });
+    }
+  });
+
+  app.post("/api/agama/bulk", requireAuth, async (req: any, res) => {
+    const userId = req.dbUser.id;
+    const { items } = req.body;
+    try {
+      for (const item of items) {
+        const existing = await db.query.agama.findFirst({
+          where: eq(agama.id_agama, item.id_agama)
+        });
+        
+        if (existing && existing.userId === userId) {
+          await db.update(agama)
+            .set({ 
+              nama_agama: item.nama_agama
+            })
+            .where(eq(agama.id, existing.id));
+        } else {
+          await db.insert(agama).values({
+            userId,
+            id_agama: item.id_agama,
+            nama_agama: item.nama_agama
+          });
+        }
+      }
+      res.json({ success: true });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to bulk add agama" });
+    }
+  });
+
+  app.get("/api/wilayah", requireAuth, async (req: any, res) => {
+    const userId = req.dbUser.id;
+    try {
+      const allWilayah = await db.query.wilayah.findMany({
+        where: eq(wilayah.userId, userId),
+        orderBy: (wilayah, { asc }) => [asc(wilayah.nama_wilayah)]
+      });
+      res.json({ wilayah: allWilayah });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to fetch wilayah" });
+    }
+  });
+
+  app.post("/api/wilayah/bulk", requireAuth, async (req: any, res) => {
+    const userId = req.dbUser.id;
+    const { items } = req.body;
+    try {
+      for (const item of items) {
+        const existing = await db.query.wilayah.findFirst({
+          where: eq(wilayah.id_wilayah, item.id_wilayah)
+        });
+        
+        if (existing && existing.userId === userId) {
+          await db.update(wilayah)
+            .set({ 
+              nama_wilayah: item.nama_wilayah,
+              id_negara: item.id_negara
+            })
+            .where(eq(wilayah.id, existing.id));
+        } else {
+          await db.insert(wilayah).values({
+            userId,
+            id_wilayah: item.id_wilayah,
+            id_negara: item.id_negara,
+            nama_wilayah: item.nama_wilayah
+          });
+        }
+      }
+      res.json({ success: true });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to bulk add wilayah" });
     }
   });
 

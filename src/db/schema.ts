@@ -84,12 +84,35 @@ export const dosen = pgTable('dosen', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+export const agama = pgTable('agama', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  id_agama: text('id_agama').notNull(),
+  nama_agama: text('nama_agama').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const wilayah = pgTable('wilayah', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  id_wilayah: text('id_wilayah').notNull(),
+  id_negara: text('id_negara'),
+  nama_wilayah: text('nama_wilayah').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   configs: many(neofeederConfig),
   students: many(students),
   prodi: many(prodi),
   periode: many(periode),
   dosen: many(dosen),
+  agama: many(agama),
+  wilayah: many(wilayah),
 }));
 
 export const configRelations = relations(neofeederConfig, ({ one }) => ({
@@ -123,6 +146,20 @@ export const periodeRelations = relations(periode, ({ one }) => ({
 export const dosenRelations = relations(dosen, ({ one }) => ({
   user: one(users, {
     fields: [dosen.userId],
+    references: [users.id],
+  }),
+}));
+
+export const agamaRelations = relations(agama, ({ one }) => ({
+  user: one(users, {
+    fields: [agama.userId],
+    references: [users.id],
+  }),
+}));
+
+export const wilayahRelations = relations(wilayah, ({ one }) => ({
+  user: one(users, {
+    fields: [wilayah.userId],
     references: [users.id],
   }),
 }));
