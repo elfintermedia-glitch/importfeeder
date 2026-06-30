@@ -624,6 +624,17 @@ async function startServer() {
     }
   });
 
+  // Catch-all for API routes so they don't fall through to the SPA fallback
+  app.all("/api/*", (req, res) => {
+    res.status(404).json({ error: "API route not found" });
+  });
+
+  // Global error handler for API routes to always return JSON (e.g. for PayloadTooLargeError)
+  app.use("/api", (err: any, req: any, res: any, next: any) => {
+    console.error("API Error:", err);
+    res.status(err.status || 500).json({ error: err.message || "Internal Server Error" });
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
