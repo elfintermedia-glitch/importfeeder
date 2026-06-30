@@ -598,7 +598,13 @@ async function startServer() {
         }
       }
 
-      await runCommand("npm install && npm run build");
+      try {
+        await runCommand("npm install --no-fund --no-audit");
+      } catch (npmError: any) {
+        res.write(`\nNPM install error: ${npmError.message}. Melanjutkan ke build...\n`);
+      }
+
+      await runCommand("npm run build");
       
       res.write("\n=== SUCCESS ===\nAplikasi berhasil diperbarui.");
       res.end();
