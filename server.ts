@@ -283,7 +283,17 @@ async function startServer() {
               name: item.name, 
               programStudy: item.programStudy, 
               admissionPeriod: item.admissionPeriod, 
-              status: item.status 
+              status: item.status,
+              jenisKelamin: item.jenisKelamin,
+              tempatLahir: item.tempatLahir,
+              tanggalLahir: item.tanggalLahir,
+              idAgama: item.idAgama,
+              nik: item.nik,
+              kewarganegaraan: item.kewarganegaraan,
+              kelurahan: item.kelurahan,
+              idWilayah: item.idWilayah,
+              penerimaKps: item.penerimaKps,
+              namaIbuKandung: item.namaIbuKandung
             })
             .where(eq(students.id, existing.id));
         } else {
@@ -293,7 +303,17 @@ async function startServer() {
             name: item.name,
             programStudy: item.programStudy,
             admissionPeriod: item.admissionPeriod,
-            status: item.status || 'Baru'
+            status: item.status || 'Baru',
+            jenisKelamin: item.jenisKelamin,
+            tempatLahir: item.tempatLahir,
+            tanggalLahir: item.tanggalLahir,
+            idAgama: item.idAgama,
+            nik: item.nik,
+            kewarganegaraan: item.kewarganegaraan,
+            kelurahan: item.kelurahan,
+            idWilayah: item.idWilayah,
+            penerimaKps: item.penerimaKps,
+            namaIbuKandung: item.namaIbuKandung
           });
         }
       }

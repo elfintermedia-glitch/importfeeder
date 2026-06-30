@@ -42,13 +42,23 @@ export const Students: React.FC = () => {
         
         // Map excel data to our format
         // Expected columns: NIM, Nama, ProgramStudi, PeriodeMasuk, Status
-        const mappedData = data.map((row: any) => ({
-          nim: row['NIM'] || row['nim'] || '',
-          name: row['Nama'] || row['nama'] || '',
-          programStudy: row['ProgramStudi'] || row['program_studi'] || '',
-          admissionPeriod: row['PeriodeMasuk'] || row['periode_masuk'] || '',
-          status: row['Status'] || row['status'] || 'Baru'
-        })).filter(s => s.nim && s.name);
+      const mappedData = data.map((row: any) => ({
+        nim: row['NIM'] || row['nim'] || '',
+        name: row['Nama Mahasiswa'] || row['nama_mahasiswa'] || row['Nama'] || row['nama'] || '',
+        jenisKelamin: row['Jenis Kelamin'] || row['jenis_kelamin'] || '',
+        tempatLahir: row['Tempat Lahir'] || row['tempat_lahir'] || '',
+        tanggalLahir: row['Tanggal Lahir'] || row['tanggal_lahir'] || '',
+        idAgama: row['ID Agama'] || row['id_agama'] || '',
+        nik: row['NIK'] || row['nik'] || '',
+        kewarganegaraan: row['Kewarganegaraan'] || row['kewarganegaraan'] || '',
+        kelurahan: row['Kelurahan'] || row['kelurahan'] || '',
+        idWilayah: row['ID Wilayah'] || row['id_wilayah'] || '',
+        penerimaKps: row['Penerima KPS'] || row['penerima_kps'] || '',
+        namaIbuKandung: row['Nama Ibu Kandung'] || row['nama_ibu_kandung'] || '',
+        programStudy: row['Program Studi'] || row['program_studi'] || row['ProgramStudi'] || '',
+        admissionPeriod: row['Periode Masuk'] || row['periode_masuk'] || row['PeriodeMasuk'] || '',
+        status: row['Status'] || row['status'] || 'Baru'
+      })).filter(s => s.nim && s.name);
 
         await fetchWithAuth('/api/students/bulk', {
           method: 'POST',
@@ -71,9 +81,16 @@ export const Students: React.FC = () => {
   const downloadTemplate = () => {
     const wb = XLSX.utils.book_new();
     const wsData = [
-      ['NIM', 'Nama', 'ProgramStudi', 'PeriodeMasuk', 'Status'],
-      ['12345', 'Budi Santoso', 'Teknik Informatika', '20231', 'Baru'],
-      ['12346', 'Siti Aminah', 'Sistem Informasi', '20231', 'Lulus']
+      [
+        'NIM', 'Nama Mahasiswa', 'Jenis Kelamin', 'Tempat Lahir', 'Tanggal Lahir',
+        'ID Agama', 'NIK', 'Kewarganegaraan', 'Kelurahan', 'ID Wilayah',
+        'Penerima KPS', 'Nama Ibu Kandung', 'Program Studi', 'Periode Masuk', 'Status'
+      ],
+      [
+        '12345', 'Budi Santoso', 'L', 'Jakarta', '2000-01-01',
+        '1', '1234567890123456', 'ID', 'Gambir', '010000',
+        '0', 'Ibu Budi', 'Teknik Informatika', '20231', 'Baru'
+      ]
     ];
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     XLSX.utils.book_append_sheet(wb, ws, "Mahasiswa");
@@ -103,13 +120,16 @@ export const Students: React.FC = () => {
             payload: {
               record: {
                 nama_mahasiswa: student.name,
-                jenis_kelamin: "L", // Dummy
-                tempat_lahir: "Jakarta",
-                tanggal_lahir: "2000-01-01",
-                id_agama: 1, // Islam
-                nik: "1234567890123456",
-                kewarganegaraan: "ID",
-                nama_ibu_kandung: "Ibu " + student.name
+                jenis_kelamin: student.jenisKelamin || "L",
+                tempat_lahir: student.tempatLahir || "Jakarta",
+                tanggal_lahir: student.tanggalLahir || "2000-01-01",
+                id_agama: parseInt(student.idAgama || "1", 10),
+                nik: student.nik || "1234567890123456",
+                kewarganegaraan: student.kewarganegaraan || "ID",
+                kelurahan: student.kelurahan || "Gambir",
+                id_wilayah: student.idWilayah || "010000",
+                penerima_kps: student.penerimaKps || "0",
+                nama_ibu_kandung: student.namaIbuKandung || ("Ibu " + student.name)
               }
             }
           })
