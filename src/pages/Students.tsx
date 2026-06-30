@@ -98,14 +98,22 @@ export const Students: React.FC = () => {
   };
 
   const syncToNeofeeder = async () => {
-    if (!confirm(`Sinkronisasi ${students.length} data mahasiswa ke Neofeeder?`)) return;
+    const studentsToSync = students.filter(s => s.status === 'Baru');
+    if (studentsToSync.length === 0) {
+      alert('Tidak ada data mahasiswa baru untuk disinkronisasi.');
+      return;
+    }
+    if (!confirm(`Sinkronisasi ${studentsToSync.length} data mahasiswa baru ke Neofeeder?`)) return;
     setSyncing(true);
     setSyncLog([]);
     const logs = [];
     
+    let successCount = 0;
+    let failCount = 0;
+
     // In a real app, we need dictionary mapping for Program Studi
     // For this example, we just push dummy data to represent the logic
-    for (const student of students) {
+    for (const student of studentsToSync) {
       logs.push(`Memproses ${student.name} (${student.nim})...`);
       setSyncLog([...logs]);
       
@@ -116,7 +124,7 @@ export const Students: React.FC = () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action: 'InsertMahasiswa',
+            action: 'InsertBiodataMahasiswa',
             payload: {
               record: {
                 nama_mahasiswa: student.name,
@@ -128,8 +136,11 @@ export const Students: React.FC = () => {
                 kewarganegaraan: student.kewarganegaraan || "ID",
                 kelurahan: student.kelurahan || "Gambir",
                 id_wilayah: student.idWilayah || "010000",
-                penerima_kps: student.penerimaKps || "0",
-                nama_ibu_kandung: student.namaIbuKandung || ("Ibu " + student.name)
+                penerima_kps: parseInt(student.penerimaKps || "0", 10),
+                nama_ibu_kandung: student.namaIbuKandung || ("Ibu " + student.name),
+                id_kebutuhan_khusus_mahasiswa: 0,
+                id_kebutuhan_khusus_ayah: 0,
+                id_kebutuhan_khusus_ibu: 0
               }
             }
           })
@@ -137,20 +148,123 @@ export const Students: React.FC = () => {
 
         if (res.error_code === 0) {
           logs.push(`✅ Biodata ${student.name} berhasil diinsert.`);
-          // Next step typically is InsertRiwayatPendidikanMahasiswa 
-          // passing the new id_mahasiswa along with NIM and Program Studi ID
+          setSyncLog([...logs]);
+          
+          const id_mahasiswa = res.data?.id_mahasiswa;
+          let isFullySuccessful = false;
+          
+          if (id_mahasiswa) {
+            // Dapatkan id_prodi dari local database 'periode'
+            let id_prodi = "";
+            try {
+              const prodiQuery = await fetchWithAuth('/api/db/query', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  query: `SELECT id_prodi FROM periode WHERE nama_program_studi ILIKE '%${student.programStudy}%' LIMIT 1`
+                })
+              });
+              if (prodiQuery.result && prodiQuery.result.length > 0) {
+                id_prodi = prodiQuery.result[0].id_prodi;
+              }
+            } catch (err) {
+              console.error(err);
+            }
+
+            if (!id_prodi) {
+               logs.push(`⚠️ Peringatan: id_prodi tidak ditemukan di database lokal untuk prodi '${student.programStudy}'. Mencari di Neofeeder...`);
+               setSyncLog([...logs]);
+               const nfProdi = await fetchWithAuth('/api/neofeeder', {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify({
+                   action: 'GetProdi',
+                   payload: { filter: `nama_program_studi LIKE '%${student.programStudy}%'` }
+                 })
+               });
+               if (nfProdi.error_code === 0 && nfProdi.data && nfProdi.data.length > 0) {
+                 id_prodi = nfProdi.data[0].id_prodi;
+               }
+            }
+
+            if (id_prodi) {
+               logs.push(`⏳ Mengirim Riwayat Pendidikan ${student.name}...`);
+               setSyncLog([...logs]);
+               
+               const riwayatRes = await fetchWithAuth('/api/neofeeder', {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify({
+                   action: 'InsertRiwayatPendidikanMahasiswa',
+                   payload: {
+                     record: {
+                       id_mahasiswa: id_mahasiswa,
+                       nim: student.nim,
+                       id_jenis_daftar: 1, // 1: Peserta didik baru
+                       id_periode_masuk: student.admissionPeriod || "20231",
+                       tanggal_daftar: student.tanggalLahir || "2023-08-01",
+                       id_prodi: id_prodi,
+                       biaya_masuk: 0
+                     }
+                   }
+                 })
+               });
+               
+               if (riwayatRes.error_code === 0) {
+                  logs.push(`✅ Riwayat Pendidikan ${student.name} berhasil diinsert.`);
+                  isFullySuccessful = true;
+               } else {
+                  logs.push(`❌ Gagal Riwayat Pendidikan: ${riwayatRes.error_desc}`);
+               }
+            } else {
+               logs.push(`❌ Gagal: Tidak dapat menemukan ID Prodi untuk '${student.programStudy}'`);
+            }
+          }
+
+          if (isFullySuccessful) {
+             successCount++;
+             // Update status to Terkirim
+             await fetchWithAuth('/api/students/status', {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ nim: student.nim, status: 'Terkirim' })
+             });
+          } else {
+             failCount++;
+             // Update status to Gagal
+             await fetchWithAuth('/api/students/status', {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ nim: student.nim, status: 'Gagal' })
+             });
+          }
         } else {
-          logs.push(`❌ Gagal: ${res.error_desc}`);
+          logs.push(`❌ Gagal Biodata: ${res.error_desc}`);
+          failCount++;
+          await fetchWithAuth('/api/students/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nim: student.nim, status: 'Gagal' })
+          });
         }
       } catch (e: any) {
          logs.push(`❌ Error: ${e.message}`);
+         failCount++;
+         await fetchWithAuth('/api/students/status', {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({ nim: student.nim, status: 'Gagal' })
+         });
       }
       setSyncLog([...logs]);
     }
     
-    logs.push("Sinkronisasi Selesai.");
+    logs.push(`Sinkronisasi Selesai. Berhasil: ${successCount}, Gagal: ${failCount}`);
     setSyncLog([...logs]);
     setSyncing(false);
+    loadStudents();
+    
+    alert(`Proses Sinkronisasi Selesai!\n\nBerhasil: ${successCount} data\nGagal: ${failCount} data\n\nSilakan cek Log Sinkronisasi untuk melihat detail informasi error.`);
   };
 
   return (
@@ -211,33 +325,60 @@ export const Students: React.FC = () => {
                 <p className="text-sm mt-1">Upload Data menggunakan template Excel.</p>
               </div>
             ) : (
-              <table className="w-full text-sm border-collapse">
-                <thead className="bg-[#F9FAFB]">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB]">NIM</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB]">Nama</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB]">Prodi</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB]">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-[#F3F4F6]">
-                  {students.map((student, i) => (
-                    <tr key={i} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#1F2937]">{student.nim}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.programStudy}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full ${
-                          student.status === 'Baru' ? 'bg-[#F0FDF4] text-[#166534]' :
-                          student.status === 'Lulus' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-[#6B7280]'
-                        }`}>
-                          {student.status === 'Baru' ? '● Terkirim' : student.status}
-                        </span>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse min-w-[1200px]">
+                  <thead className="bg-[#F9FAFB]">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">Status</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">NIM</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">Nama</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">Prodi</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">Jenis Kelamin</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">Tempat Lahir</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">Tanggal Lahir</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">Agama</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">NIK</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">Kewarganegaraan</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">Kelurahan</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">Wilayah</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">KPS</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">Ibu Kandung</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">Periode Masuk</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-[#F3F4F6]">
+                    {students.map((student, i) => (
+                      <tr key={i} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full ${
+                            student.status === 'Terkirim' ? 'bg-[#F0FDF4] text-[#166534]' :
+                            student.status === 'Gagal' ? 'bg-red-50 text-red-700' :
+                            student.status === 'Baru' ? 'bg-yellow-50 text-yellow-700' :
+                            student.status === 'Lulus' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-[#6B7280]'
+                          }`}>
+                            {student.status === 'Terkirim' ? '● Terkirim' : 
+                             student.status === 'Gagal' ? '● Gagal' : student.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#1F2937]">{student.nim}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.programStudy}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.jenisKelamin}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.tempatLahir}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.tanggalLahir}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.idAgama}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.nik}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.kewarganegaraan}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.kelurahan}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.idWilayah}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.penerimaKps}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.namaIbuKandung}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.admissionPeriod}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
             <div className="px-6 py-4 border-t border-[#E5E7EB] flex justify-between items-center bg-[#F9FAFB]">
               <span className="text-[13px] text-[#6B7280]">Total {students.length} Mahasiswa</span>

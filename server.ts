@@ -410,6 +410,20 @@ async function startServer() {
     }
   });
 
+  app.post("/api/students/status", requireAuth, async (req: any, res) => {
+    const userId = req.dbUser.id;
+    const { nim, status } = req.body;
+    try {
+      await db.update(students)
+        .set({ status })
+        .where(sql`${students.userId} = ${userId} AND ${students.nim} = ${nim}`);
+      res.json({ success: true });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to update student status" });
+    }
+  });
+
   app.post("/api/db/query", requireAuth, async (req: any, res) => {
     const { query } = req.body;
     try {
