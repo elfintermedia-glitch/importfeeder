@@ -108,6 +108,50 @@ export const Layout: React.FC = () => {
                   <Database className="h-4 w-4" />
                   <span>Data Wilayah</span>
                 </Link>
+                <Link
+                  to="/jenis-pendaftaran"
+                  className={`flex items-center gap-[12px] pl-14 pr-6 py-2.5 text-sm transition-all border-l-4 ${
+                    location.pathname === '/jenis-pendaftaran'
+                      ? 'bg-[#1E293B] text-white border-blue-500' 
+                      : 'text-[#94A3B8] hover:bg-[#1E293B] hover:text-white border-transparent'
+                  }`}
+                >
+                  <Database className="h-4 w-4" />
+                  <span>Jenis Pendaftaran</span>
+                </Link>
+                <Link
+                  to="/jalur-masuk"
+                  className={`flex items-center gap-[12px] pl-14 pr-6 py-2.5 text-sm transition-all border-l-4 ${
+                    location.pathname === '/jalur-masuk'
+                      ? 'bg-[#1E293B] text-white border-blue-500' 
+                      : 'text-[#94A3B8] hover:bg-[#1E293B] hover:text-white border-transparent'
+                  }`}
+                >
+                  <Database className="h-4 w-4" />
+                  <span>Jalur Masuk</span>
+                </Link>
+                <Link
+                  to="/pekerjaan"
+                  className={`flex items-center gap-[12px] pl-14 pr-6 py-2.5 text-sm transition-all border-l-4 ${
+                    location.pathname === '/pekerjaan'
+                      ? 'bg-[#1E293B] text-white border-blue-500' 
+                      : 'text-[#94A3B8] hover:bg-[#1E293B] hover:text-white border-transparent'
+                  }`}
+                >
+                  <Database className="h-4 w-4" />
+                  <span>Data Pekerjaan</span>
+                </Link>
+                <Link
+                  to="/penghasilan"
+                  className={`flex items-center gap-[12px] pl-14 pr-6 py-2.5 text-sm transition-all border-l-4 ${
+                    location.pathname === '/penghasilan'
+                      ? 'bg-[#1E293B] text-white border-blue-500' 
+                      : 'text-[#94A3B8] hover:bg-[#1E293B] hover:text-white border-transparent'
+                  }`}
+                >
+                  <Database className="h-4 w-4" />
+                  <span>Data Penghasilan</span>
+                </Link>
               </div>
             )}
           </div>

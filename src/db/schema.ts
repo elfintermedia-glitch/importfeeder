@@ -34,11 +34,48 @@ export const students = pgTable('students', {
   tanggalLahir: text('tanggal_lahir'),
   idAgama: text('id_agama'),
   nik: text('nik'),
+  nisn: text('nisn'),
+  npwp: text('npwp'),
   kewarganegaraan: text('kewarganegaraan'),
+  jalan: text('jalan'),
+  dusun: text('dusun'),
+  rt: text('rt'),
+  rw: text('rw'),
   kelurahan: text('kelurahan'),
+  kodePos: text('kode_pos'),
   idWilayah: text('id_wilayah'),
+  idJenisTinggal: text('id_jenis_tinggal'),
+  idAlatTransportasi: text('id_alat_transportasi'),
+  telepon: text('telepon'),
+  handphone: text('handphone'),
+  email: text('email'),
   penerimaKps: text('penerima_kps'),
+  nomorKps: text('nomor_kps'),
+  nikAyah: text('nik_ayah'),
+  namaAyah: text('nama_ayah'),
+  tanggalLahirAyah: text('tanggal_lahir_ayah'),
+  idPendidikanAyah: text('id_pendidikan_ayah'),
+  idPekerjaanAyah: text('id_pekerjaan_ayah'),
+  idPenghasilanAyah: text('id_penghasilan_ayah'),
+  nikIbu: text('nik_ibu'),
   namaIbuKandung: text('nama_ibu_kandung'),
+  tanggalLahirIbu: text('tanggal_lahir_ibu'),
+  idPendidikanIbu: text('id_pendidikan_ibu'),
+  idPekerjaanIbu: text('id_pekerjaan_ibu'),
+  idPenghasilanIbu: text('id_penghasilan_ibu'),
+  namaWali: text('nama_wali'),
+  tanggalLahirWali: text('tanggal_lahir_wali'),
+  idPendidikanWali: text('id_pendidikan_wali'),
+  idPekerjaanWali: text('id_pekerjaan_wali'),
+  idPenghasilanWali: text('id_penghasilan_wali'),
+  idKebutuhanKhususMahasiswa: text('id_kebutuhan_khusus_mahasiswa'),
+  idKebutuhanKhususAyah: text('id_kebutuhan_khusus_ayah'),
+  idKebutuhanKhususIbu: text('id_kebutuhan_khusus_ibu'),
+  idJenisDaftar: text('id_jenis_daftar'),
+  idJalurDaftar: text('id_jalur_daftar'),
+  idPembiayaan: text('id_pembiayaan'),
+  biayaMasuk: text('biaya_masuk'),
+  idProdi: text('id_prodi'),
   status: text('status').default('Baru'),
   createdAt: timestamp('created_at').defaultNow(),
 });
@@ -48,6 +85,7 @@ export const prodi = pgTable('prodi', {
   userId: integer('user_id')
     .references(() => users.id)
     .notNull(),
+  id_prodi: text('id_prodi'),
   kode_program_studi: text('kode_program_studi').notNull(),
   nama_program_studi: text('nama_program_studi').notNull(),
   status: text('status'),
@@ -105,6 +143,46 @@ export const wilayah = pgTable('wilayah', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+export const jenisDaftar = pgTable('jenis_daftar', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  id_jenis_daftar: text('id_jenis_daftar').notNull(),
+  nama_jenis_daftar: text('nama_jenis_daftar').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const jalurMasuk = pgTable('jalur_masuk', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  id_jalur_masuk: text('id_jalur_masuk').notNull(),
+  nama_jalur_masuk: text('nama_jalur_masuk').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const pekerjaan = pgTable('pekerjaan', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  id_pekerjaan: text('id_pekerjaan').notNull(),
+  nama_pekerjaan: text('nama_pekerjaan').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const penghasilan = pgTable('penghasilan', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  id_penghasilan: text('id_penghasilan').notNull(),
+  nama_penghasilan: text('nama_penghasilan').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   configs: many(neofeederConfig),
   students: many(students),
@@ -113,6 +191,10 @@ export const usersRelations = relations(users, ({ many }) => ({
   dosen: many(dosen),
   agama: many(agama),
   wilayah: many(wilayah),
+  jenisDaftar: many(jenisDaftar),
+  jalurMasuk: many(jalurMasuk),
+  pekerjaan: many(pekerjaan),
+  penghasilan: many(penghasilan),
 }));
 
 export const configRelations = relations(neofeederConfig, ({ one }) => ({
@@ -160,6 +242,34 @@ export const agamaRelations = relations(agama, ({ one }) => ({
 export const wilayahRelations = relations(wilayah, ({ one }) => ({
   user: one(users, {
     fields: [wilayah.userId],
+    references: [users.id],
+  }),
+}));
+
+export const jenisDaftarRelations = relations(jenisDaftar, ({ one }) => ({
+  user: one(users, {
+    fields: [jenisDaftar.userId],
+    references: [users.id],
+  }),
+}));
+
+export const jalurMasukRelations = relations(jalurMasuk, ({ one }) => ({
+  user: one(users, {
+    fields: [jalurMasuk.userId],
+    references: [users.id],
+  }),
+}));
+
+export const pekerjaanRelations = relations(pekerjaan, ({ one }) => ({
+  user: one(users, {
+    fields: [pekerjaan.userId],
+    references: [users.id],
+  }),
+}));
+
+export const penghasilanRelations = relations(penghasilan, ({ one }) => ({
+  user: one(users, {
+    fields: [penghasilan.userId],
     references: [users.id],
   }),
 }));

@@ -8,12 +8,12 @@ import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import { requireAuth } from "./src/middleware/auth.ts";
 import { db } from "./src/db/index.ts";
-import { neofeederConfig, students, prodi, periode, dosen, agama, wilayah } from "./src/db/schema.ts";
+import { neofeederConfig, students, prodi, periode, dosen, agama, wilayah, jenisDaftar, jalurMasuk, pekerjaan, penghasilan } from "./src/db/schema.ts";
 import { eq, sql } from "drizzle-orm";
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT || 3000; // Tetap 3000 di environment lokal ini agar preview tidak error. Di aaPanel, Anda bisa mengubahnya.
+  const PORT = 3000;
 
   app.use(cors());
   app.use(express.json({ limit: '50mb' }));
@@ -111,6 +111,7 @@ async function startServer() {
         if (existing && existing.userId === userId) {
           await db.update(prodi)
             .set({ 
+              id_prodi: item.id_prodi,
               nama_program_studi: item.nama_program_studi,
               status: item.status,
               nama_jenjang_pendidikan: item.nama_jenjang_pendidikan
@@ -119,6 +120,7 @@ async function startServer() {
         } else {
           await db.insert(prodi).values({
             userId,
+            id_prodi: item.id_prodi,
             kode_program_studi: item.kode_program_studi,
             nama_program_studi: item.nama_program_studi,
             status: item.status,
@@ -324,6 +326,174 @@ async function startServer() {
     }
   });
 
+  app.get("/api/jenis-daftar", requireAuth, async (req: any, res) => {
+    const userId = req.dbUser.id;
+    try {
+      const allJenisDaftar = await db.query.jenisDaftar.findMany({
+        where: eq(jenisDaftar.userId, userId),
+        orderBy: (jenisDaftar, { asc }) => [asc(jenisDaftar.nama_jenis_daftar)]
+      });
+      res.json({ jenis_daftar: allJenisDaftar });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to fetch jenis daftar" });
+    }
+  });
+
+  app.post("/api/jenis-daftar/bulk", requireAuth, async (req: any, res) => {
+    const userId = req.dbUser.id;
+    const { items } = req.body;
+    try {
+      if (!items || !Array.isArray(items)) {
+        return res.status(400).json({ error: "Invalid items array" });
+      }
+
+      await db.delete(jenisDaftar).where(eq(jenisDaftar.userId, userId));
+      
+      const chunkSize = 500;
+      for (let i = 0; i < items.length; i += chunkSize) {
+        const chunk = items.slice(i, i + chunkSize).map((item: any) => ({
+          userId,
+          id_jenis_daftar: String(item.id_jenis_daftar || ''),
+          nama_jenis_daftar: String(item.nama_jenis_daftar || '')
+        }));
+        if (chunk.length > 0) {
+          await db.insert(jenisDaftar).values(chunk);
+        }
+      }
+      res.json({ success: true });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to bulk add jenis daftar: " + e.message });
+    }
+  });
+
+  app.get("/api/jalur-masuk", requireAuth, async (req: any, res) => {
+    const userId = req.dbUser.id;
+    try {
+      const allJalurMasuk = await db.query.jalurMasuk.findMany({
+        where: eq(jalurMasuk.userId, userId),
+        orderBy: (jalurMasuk, { asc }) => [asc(jalurMasuk.nama_jalur_masuk)]
+      });
+      res.json({ jalur_masuk: allJalurMasuk });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to fetch jalur masuk" });
+    }
+  });
+
+  app.post("/api/jalur-masuk/bulk", requireAuth, async (req: any, res) => {
+    const userId = req.dbUser.id;
+    const { items } = req.body;
+    try {
+      if (!items || !Array.isArray(items)) {
+        return res.status(400).json({ error: "Invalid items array" });
+      }
+
+      await db.delete(jalurMasuk).where(eq(jalurMasuk.userId, userId));
+      
+      const chunkSize = 500;
+      for (let i = 0; i < items.length; i += chunkSize) {
+        const chunk = items.slice(i, i + chunkSize).map((item: any) => ({
+          userId,
+          id_jalur_masuk: String(item.id_jalur_masuk || ''),
+          nama_jalur_masuk: String(item.nama_jalur_masuk || '')
+        }));
+        if (chunk.length > 0) {
+          await db.insert(jalurMasuk).values(chunk);
+        }
+      }
+      res.json({ success: true });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to bulk add jalur masuk: " + e.message });
+    }
+  });
+
+  app.get("/api/pekerjaan", requireAuth, async (req: any, res) => {
+    const userId = req.dbUser.id;
+    try {
+      const allPekerjaan = await db.query.pekerjaan.findMany({
+        where: eq(pekerjaan.userId, userId),
+        orderBy: (pekerjaan, { asc }) => [asc(pekerjaan.nama_pekerjaan)]
+      });
+      res.json({ pekerjaan: allPekerjaan });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to fetch pekerjaan" });
+    }
+  });
+
+  app.post("/api/pekerjaan/bulk", requireAuth, async (req: any, res) => {
+    const userId = req.dbUser.id;
+    const { items } = req.body;
+    try {
+      if (!items || !Array.isArray(items)) {
+        return res.status(400).json({ error: "Invalid items array" });
+      }
+
+      await db.delete(pekerjaan).where(eq(pekerjaan.userId, userId));
+      
+      const chunkSize = 500;
+      for (let i = 0; i < items.length; i += chunkSize) {
+        const chunk = items.slice(i, i + chunkSize).map((item: any) => ({
+          userId,
+          id_pekerjaan: String(item.id_pekerjaan || ''),
+          nama_pekerjaan: String(item.nama_pekerjaan || '')
+        }));
+        if (chunk.length > 0) {
+          await db.insert(pekerjaan).values(chunk);
+        }
+      }
+      res.json({ success: true });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to bulk add pekerjaan: " + e.message });
+    }
+  });
+
+  app.get("/api/penghasilan", requireAuth, async (req: any, res) => {
+    const userId = req.dbUser.id;
+    try {
+      const allPenghasilan = await db.query.penghasilan.findMany({
+        where: eq(penghasilan.userId, userId),
+        orderBy: (penghasilan, { asc }) => [asc(penghasilan.id_penghasilan)] // Order by id as it's usually numeric string
+      });
+      res.json({ penghasilan: allPenghasilan });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to fetch penghasilan" });
+    }
+  });
+
+  app.post("/api/penghasilan/bulk", requireAuth, async (req: any, res) => {
+    const userId = req.dbUser.id;
+    const { items } = req.body;
+    try {
+      if (!items || !Array.isArray(items)) {
+        return res.status(400).json({ error: "Invalid items array" });
+      }
+
+      await db.delete(penghasilan).where(eq(penghasilan.userId, userId));
+      
+      const chunkSize = 500;
+      for (let i = 0; i < items.length; i += chunkSize) {
+        const chunk = items.slice(i, i + chunkSize).map((item: any) => ({
+          userId,
+          id_penghasilan: String(item.id_penghasilan || ''),
+          nama_penghasilan: String(item.nama_penghasilan || '')
+        }));
+        if (chunk.length > 0) {
+          await db.insert(penghasilan).values(chunk);
+        }
+      }
+      res.json({ success: true });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to bulk add penghasilan: " + e.message });
+    }
+  });
+
   app.get("/api/students", requireAuth, async (req: any, res) => {
     const userId = req.dbUser.id;
     try {
@@ -367,7 +537,8 @@ async function startServer() {
           await db.update(students)
             .set({ 
               name: item.name, 
-              programStudy: item.programStudy, 
+              programStudy: item.programStudy,
+              idProdi: item.idProdi,
               admissionPeriod: item.admissionPeriod, 
               status: item.status,
               jenisKelamin: item.jenisKelamin,
@@ -375,11 +546,14 @@ async function startServer() {
               tanggalLahir: item.tanggalLahir,
               idAgama: item.idAgama,
               nik: item.nik,
+              nisn: item.nisn,
               kewarganegaraan: item.kewarganegaraan,
               kelurahan: item.kelurahan,
               idWilayah: item.idWilayah,
               penerimaKps: item.penerimaKps,
-              namaIbuKandung: item.namaIbuKandung
+              namaIbuKandung: item.namaIbuKandung,
+              handphone: item.handphone,
+              email: item.email
             })
             .where(eq(students.id, existing.id));
         } else {
@@ -388,6 +562,7 @@ async function startServer() {
             nim: item.nim,
             name: item.name,
             programStudy: item.programStudy,
+            idProdi: item.idProdi,
             admissionPeriod: item.admissionPeriod,
             status: item.status || 'Baru',
             jenisKelamin: item.jenisKelamin,
@@ -395,11 +570,14 @@ async function startServer() {
             tanggalLahir: item.tanggalLahir,
             idAgama: item.idAgama,
             nik: item.nik,
+            nisn: item.nisn,
             kewarganegaraan: item.kewarganegaraan,
             kelurahan: item.kelurahan,
             idWilayah: item.idWilayah,
             penerimaKps: item.penerimaKps,
-            namaIbuKandung: item.namaIbuKandung
+            namaIbuKandung: item.namaIbuKandung,
+            handphone: item.handphone,
+            email: item.email
           });
         }
       }
@@ -407,6 +585,39 @@ async function startServer() {
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: "Failed to bulk add students" });
+    }
+  });
+
+  app.delete("/api/students/:nim", requireAuth, async (req: any, res) => {
+    const userId = req.dbUser.id;
+    const { nim } = req.params;
+    try {
+      await db.delete(students).where(sql`${students.userId} = ${userId} AND ${students.nim} = ${nim}`);
+      res.json({ success: true });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to delete student" });
+    }
+  });
+
+  app.put("/api/students/:nim", requireAuth, async (req: any, res) => {
+    const userId = req.dbUser.id;
+    const { nim } = req.params;
+    const updateData = { ...req.body };
+    delete updateData.id;
+    delete updateData.userId;
+    delete updateData.createdAt;
+
+    console.log("UPDATE DATA:", updateData);
+
+    try {
+      await db.update(students)
+        .set(updateData)
+        .where(sql`${students.userId} = ${userId} AND ${students.nim} = ${nim}`);
+      res.json({ success: true });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to update student" });
     }
   });
 

@@ -16,6 +16,10 @@ import { DataPeriode } from './pages/DataPeriode.tsx';
 import { DataDosen } from './pages/DataDosen.tsx';
 import { DataAgama } from './pages/DataAgama.tsx';
 import { DataWilayah } from './pages/DataWilayah.tsx';
+import { DataJenisPendaftaran } from './pages/DataJenisPendaftaran.tsx';
+import { DataJalurMasuk } from './pages/DataJalurMasuk.tsx';
+import { DataPekerjaan } from './pages/DataPekerjaan.tsx';
+import { DataPenghasilan } from './pages/DataPenghasilan.tsx';
 import { DatabaseOps } from './pages/DatabaseOps.tsx';
 import { UpdateAplikasi } from './pages/UpdateAplikasi.tsx';
 
@@ -53,6 +57,10 @@ const AppRoutes = () => {
         <Route path="dosen" element={<DataDosen />} />
         <Route path="agama" element={<DataAgama />} />
         <Route path="wilayah" element={<DataWilayah />} />
+        <Route path="jenis-pendaftaran" element={<DataJenisPendaftaran />} />
+        <Route path="jalur-masuk" element={<DataJalurMasuk />} />
+        <Route path="pekerjaan" element={<DataPekerjaan />} />
+        <Route path="penghasilan" element={<DataPenghasilan />} />
         <Route path="database-ops" element={<DatabaseOps />} />
         <Route path="config" element={<Configuration />} />
         <Route path="update" element={<UpdateAplikasi />} />
