@@ -9,7 +9,7 @@ import cors from "cors";
 import { requireAuth } from "./src/middleware/auth.ts";
 import { db } from "./src/db/index.ts";
 import { neofeederConfig, students, prodi, periode, dosen, agama, wilayah } from "./src/db/schema.ts";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 async function startServer() {
   const app = express();
@@ -407,6 +407,59 @@ async function startServer() {
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: "Failed to bulk add students" });
+    }
+  });
+
+  app.post("/api/db/query", requireAuth, async (req: any, res) => {
+    const { query } = req.body;
+    try {
+      if (!query) {
+        return res.status(400).json({ error: "Query is required" });
+      }
+      
+      const result = await db.execute(sql.raw(query));
+      res.json({ result: result.rows || result });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ error: e.message || "Failed to execute query" });
+    }
+  });
+
+  app.get("/api/db/tables", requireAuth, async (req: any, res) => {
+    try {
+      const result = await db.execute(sql.raw(`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        ORDER BY table_name;
+      `));
+      res.json({ tables: result.rows || result });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ error: e.message || "Failed to fetch tables" });
+    }
+  });
+
+  app.post("/api/db/table-data", requireAuth, async (req: any, res) => {
+    const { tableName, limit = 100, offset = 0 } = req.body;
+    try {
+      // Basic SQL injection prevention for table name
+      const tablesResult = await db.execute(sql.raw(`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = '${tableName}'
+      `));
+      
+      const rows = tablesResult.rows || tablesResult;
+      if (!rows || rows.length === 0) {
+        return res.status(400).json({ error: "Table not found" });
+      }
+
+      const result = await db.execute(sql.raw(`SELECT * FROM "${tableName}" LIMIT ${limit} OFFSET ${offset}`));
+      res.json({ data: result.rows || result });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ error: e.message || "Failed to fetch table data" });
     }
   });
 

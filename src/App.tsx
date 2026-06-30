@@ -16,6 +16,7 @@ import { DataPeriode } from './pages/DataPeriode.tsx';
 import { DataDosen } from './pages/DataDosen.tsx';
 import { DataAgama } from './pages/DataAgama.tsx';
 import { DataWilayah } from './pages/DataWilayah.tsx';
+import { DatabaseOps } from './pages/DatabaseOps.tsx';
 import { UpdateAplikasi } from './pages/UpdateAplikasi.tsx';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -52,6 +53,7 @@ const AppRoutes = () => {
         <Route path="dosen" element={<DataDosen />} />
         <Route path="agama" element={<DataAgama />} />
         <Route path="wilayah" element={<DataWilayah />} />
+        <Route path="database-ops" element={<DatabaseOps />} />
         <Route path="config" element={<Configuration />} />
         <Route path="update" element={<UpdateAplikasi />} />
       </Route>

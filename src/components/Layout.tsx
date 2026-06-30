@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Settings, Users, Database, ChevronDown, ChevronRight, Building, Calendar, Download, FileUp } from 'lucide-react';
+import { LogOut, LayoutDashboard, Settings, Users, Database, ChevronDown, ChevronRight, Building, Calendar, Download, FileUp, Terminal } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 
 export const Layout: React.FC = () => {
@@ -140,6 +140,18 @@ export const Layout: React.FC = () => {
             )}
           </div>
           
+          <Link
+            to="/database-ops"
+            className={`flex items-center gap-[12px] px-6 py-3 text-sm transition-all border-l-4 ${
+              location.pathname === '/database-ops' 
+                ? 'bg-[#334155] text-white border-blue-500' 
+                : 'text-[#94A3B8] hover:bg-[#334155] hover:text-white border-transparent'
+            }`}
+          >
+            <Terminal className="h-5 w-5" />
+            <span>Operasional Database</span>
+          </Link>
+
           <Link
             to="/config"
             className={`flex items-center gap-[12px] px-6 py-3 text-sm transition-all border-l-4 ${
