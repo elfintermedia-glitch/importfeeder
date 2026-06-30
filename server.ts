@@ -635,15 +635,19 @@ async function startServer() {
     res.status(err.status || 500).json({ error: err.message || "Internal Server Error" });
   });
 
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
+  // Determine if we are in production mode
+  // Many users forget to set NODE_ENV=production in aaPanel, so we also check if dist/index.html exists
+  const distPath = path.join(process.cwd(), 'dist');
+  const isProduction = process.env.NODE_ENV === "production" || 
+                       (require('fs').existsSync(path.join(distPath, 'index.html')) && process.env.NODE_ENV !== "development");
+
+  if (!isProduction) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
