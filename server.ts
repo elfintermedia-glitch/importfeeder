@@ -598,13 +598,7 @@ async function startServer() {
         }
       }
 
-      try {
-        await runCommand("npm install --no-fund --no-audit");
-      } catch (npmError: any) {
-        res.write(`\nNPM install error: ${npmError.message}. Melanjutkan ke build...\n`);
-      }
-
-      await runCommand("npm run build");
+      await runCommand("npm install && npm run build");
       
       res.write("\n=== SUCCESS ===\nAplikasi berhasil diperbarui.");
       res.end();
@@ -641,19 +635,15 @@ async function startServer() {
     res.status(err.status || 500).json({ error: err.message || "Internal Server Error" });
   });
 
-  // Determine if we are in production mode
-  // Many users forget to set NODE_ENV=production in aaPanel, so we also check if dist/index.html exists
-  const distPath = path.join(process.cwd(), 'dist');
-  const isProduction = process.env.NODE_ENV === "production" || 
-                       (require('fs').existsSync(path.join(distPath, 'index.html')) && process.env.NODE_ENV !== "development");
-
-  if (!isProduction) {
+  // Vite middleware for development
+  if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
+    const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
