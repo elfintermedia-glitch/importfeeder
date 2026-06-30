@@ -257,29 +257,27 @@ async function startServer() {
     const userId = req.dbUser.id;
     const { items } = req.body;
     try {
-      for (const item of items) {
-        const existing = await db.query.agama.findFirst({
-          where: eq(agama.id_agama, item.id_agama)
-        });
-        
-        if (existing && existing.userId === userId) {
-          await db.update(agama)
-            .set({ 
-              nama_agama: item.nama_agama
-            })
-            .where(eq(agama.id, existing.id));
-        } else {
-          await db.insert(agama).values({
-            userId,
-            id_agama: item.id_agama,
-            nama_agama: item.nama_agama
-          });
+      if (!items || !Array.isArray(items)) {
+        return res.status(400).json({ error: "Invalid items array" });
+      }
+
+      await db.delete(agama).where(eq(agama.userId, userId));
+      
+      const chunkSize = 500;
+      for (let i = 0; i < items.length; i += chunkSize) {
+        const chunk = items.slice(i, i + chunkSize).map((item: any) => ({
+          userId,
+          id_agama: String(item.id_agama || ''),
+          nama_agama: String(item.nama_agama || '')
+        }));
+        if (chunk.length > 0) {
+          await db.insert(agama).values(chunk);
         }
       }
       res.json({ success: true });
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      res.status(500).json({ error: "Failed to bulk add agama" });
+      res.status(500).json({ error: "Failed to bulk add agama: " + e.message });
     }
   });
 
@@ -301,31 +299,28 @@ async function startServer() {
     const userId = req.dbUser.id;
     const { items } = req.body;
     try {
-      for (const item of items) {
-        const existing = await db.query.wilayah.findFirst({
-          where: eq(wilayah.id_wilayah, item.id_wilayah)
-        });
-        
-        if (existing && existing.userId === userId) {
-          await db.update(wilayah)
-            .set({ 
-              nama_wilayah: item.nama_wilayah,
-              id_negara: item.id_negara
-            })
-            .where(eq(wilayah.id, existing.id));
-        } else {
-          await db.insert(wilayah).values({
-            userId,
-            id_wilayah: item.id_wilayah,
-            id_negara: item.id_negara,
-            nama_wilayah: item.nama_wilayah
-          });
+      if (!items || !Array.isArray(items)) {
+        return res.status(400).json({ error: "Invalid items array" });
+      }
+
+      await db.delete(wilayah).where(eq(wilayah.userId, userId));
+      
+      const chunkSize = 500;
+      for (let i = 0; i < items.length; i += chunkSize) {
+        const chunk = items.slice(i, i + chunkSize).map((item: any) => ({
+          userId,
+          id_wilayah: String(item.id_wilayah || ''),
+          id_negara: item.id_negara ? String(item.id_negara) : null,
+          nama_wilayah: String(item.nama_wilayah || '')
+        }));
+        if (chunk.length > 0) {
+          await db.insert(wilayah).values(chunk);
         }
       }
       res.json({ success: true });
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      res.status(500).json({ error: "Failed to bulk add wilayah" });
+      res.status(500).json({ error: "Failed to bulk add wilayah: " + e.message });
     }
   });
 
