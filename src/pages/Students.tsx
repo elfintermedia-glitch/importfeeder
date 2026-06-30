@@ -192,7 +192,21 @@ export const Students: React.FC = () => {
     
     setSyncing(true);
     setSyncLog([]);
-    const logs = [];
+    const logs: string[] = [];
+    
+    let id_perguruan_tinggi = "";
+    try {
+      const ptRes = await fetchWithAuth('/api/neofeeder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'GetProfilPT' })
+      });
+      if (ptRes.error_code === 0 && ptRes.data && ptRes.data.length > 0) {
+        id_perguruan_tinggi = ptRes.data[0].id_perguruan_tinggi;
+      }
+    } catch (e) {
+      console.error("Gagal get profil PT", e);
+    }
     
     let successCount = 0;
     let failCount = 0;
@@ -220,13 +234,8 @@ export const Students: React.FC = () => {
       try {
         // Step 1: Insert Mahasiswa (Biodata)
         // Adjust the payload based on actual Neofeeder Dictionary
-        const res = await fetchWithAuth('/api/neofeeder', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'InsertBiodataMahasiswa',
-            payload: {
-              record: {
+        
+        const biodataPayload = {
                 nama_mahasiswa: student.name,
                 jenis_kelamin: student.jenisKelamin || "L",
                 tempat_lahir: student.tempatLahir || "Jakarta",
@@ -238,13 +247,13 @@ export const Students: React.FC = () => {
                 kewarganegaraan: student.kewarganegaraan || "ID",
                 jalan: student.jalan || "Jl. Merdeka",
                 dusun: student.dusun || "Dusun Merdeka",
-                rt: student.rt || 1,
-                rw: student.rw || 1,
+                rt: parseInt(student.rt || "1", 10),
+                rw: parseInt(student.rw || "1", 10),
                 kelurahan: student.kelurahan || "Gambir",
                 kode_pos: student.kodePos || "10110",
                 id_wilayah: student.idWilayah || "010000",
-                id_jenis_tinggal: student.idJenisTinggal || 1,
-                id_alat_transportasi: student.idAlatTransportasi || 1,
+                id_jenis_tinggal: parseInt(student.idJenisTinggal || "1", 10),
+                id_alat_transportasi: parseInt(student.idAlatTransportasi || "1", 10),
                 telepon: student.telepon || "",
                 handphone: student.handphone || "",
                 email: student.email || "",
@@ -253,24 +262,35 @@ export const Students: React.FC = () => {
                 nik_ayah: student.nikAyah || "",
                 nama_ayah: student.namaAyah || ("Bapak " + student.name),
                 tanggal_lahir_ayah: student.tanggalLahirAyah || "1970-01-01",
-                id_pendidikan_ayah: student.idPendidikanAyah || 1,
-                id_pekerjaan_ayah: student.idPekerjaanAyah || 1,
-                id_penghasilan_ayah: student.idPenghasilanAyah || 14,
+                id_pendidikan_ayah: parseInt(student.idPendidikanAyah || "1", 10),
+                id_pekerjaan_ayah: parseInt(student.idPekerjaanAyah || "1", 10),
+                id_penghasilan_ayah: parseInt(student.idPenghasilanAyah || "14", 10),
                 nik_ibu: student.nikIbu || "",
                 nama_ibu_kandung: student.namaIbuKandung || ("Ibu " + student.name),
                 tanggal_lahir_ibu: student.tanggalLahirIbu || "1975-01-01",
-                id_pendidikan_ibu: student.idPendidikanIbu || 1,
-                id_pekerjaan_ibu: student.idPekerjaanIbu || 1,
-                id_penghasilan_ibu: student.idPenghasilanIbu || 14,
+                id_pendidikan_ibu: parseInt(student.idPendidikanIbu || "1", 10),
+                id_pekerjaan_ibu: parseInt(student.idPekerjaanIbu || "1", 10),
+                id_penghasilan_ibu: parseInt(student.idPenghasilanIbu || "14", 10),
                 nama_wali: student.namaWali || "",
                 tanggal_lahir_wali: student.tanggalLahirWali || "",
-                id_pendidikan_wali: student.idPendidikanWali || 0,
-                id_pekerjaan_wali: student.idPekerjaanWali || 0,
-                id_penghasilan_wali: student.idPenghasilanWali || 0,
-                id_kebutuhan_khusus_mahasiswa: student.idKebutuhanKhususMahasiswa || 0,
-                id_kebutuhan_khusus_ayah: student.idKebutuhanKhususAyah || 0,
-                id_kebutuhan_khusus_ibu: student.idKebutuhanKhususIbu || 0
-              }
+                id_pendidikan_wali: parseInt(student.idPendidikanWali || "0", 10),
+                id_pekerjaan_wali: parseInt(student.idPekerjaanWali || "0", 10),
+                id_penghasilan_wali: parseInt(student.idPenghasilanWali || "14", 10),
+                id_kebutuhan_khusus_mahasiswa: parseInt(student.idKebutuhanKhususMahasiswa || "0", 10),
+                id_kebutuhan_khusus_ayah: parseInt(student.idKebutuhanKhususAyah || "0", 10),
+                id_kebutuhan_khusus_ibu: parseInt(student.idKebutuhanKhususIbu || "0", 10)
+        };
+        
+        logs.push(`Payload Biodata: ${JSON.stringify(biodataPayload, null, 2)}`);
+        setSyncLog([...logs]);
+
+        const res = await fetchWithAuth('/api/neofeeder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'InsertBiodataMahasiswa',
+            payload: {
+              record: biodataPayload
             }
           })
         });
@@ -285,6 +305,19 @@ export const Students: React.FC = () => {
           if (id_mahasiswa) {
             // Dapatkan id_prodi dari local database 'periode'
             let id_prodi = student.idProdi || "";
+            
+            // Periksa apakah id_prodi sudah berupa UUID. Jika belum (misal masih kode_program_studi),
+            // cari di prodiList yang sudah dimuat.
+            const isUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id_prodi);
+            if (!isUUID) {
+              const matchedProdi = prodiList.find(p => p.kode_program_studi === id_prodi || p.id_prodi === id_prodi);
+              if (matchedProdi && matchedProdi.id_prodi) {
+                id_prodi = matchedProdi.id_prodi;
+              } else {
+                id_prodi = "";
+              }
+            }
+            
             if (!id_prodi) {
               try {
                 const prodiQuery = await fetchWithAuth('/api/db/query', {
@@ -322,24 +355,33 @@ export const Students: React.FC = () => {
                logs.push(`⏳ Mengirim Riwayat Pendidikan ${student.name}...`);
                setSyncLog([...logs]);
                
-               const riwayatRes = await fetchWithAuth('/api/neofeeder', {
+                    const riwayatPayload: any = {
+                      id_mahasiswa: id_mahasiswa,
+                      nim: String(student.nim || ""),
+                      id_jenis_daftar: student.idJenisDaftar ? Number(student.idJenisDaftar) : 1,
+                      id_jalur_daftar: student.idJalurDaftar ? Number(student.idJalurDaftar) : 4,
+                      id_periode_masuk: String(student.admissionPeriod || "20231"),
+                      tanggal_daftar: String(student.tanggalLahir || "2023-08-01"),
+                      id_perguruan_tinggi: String(id_perguruan_tinggi),
+                      id_prodi: String(id_prodi),
+                      id_bidang_minat: "",
+                      sks_diakui: null,
+                      id_perguruan_tinggi_asal: null,
+                      id_prodi_asal: null,
+                      id_pembiayaan: student.idPembiayaan ? Number(student.idPembiayaan) : 1,
+                      biaya_masuk: student.biayaMasuk ? Number(student.biayaMasuk) : 2000000
+                    };
+                    
+                    logs.push(`Payload Riwayat: ${JSON.stringify(riwayatPayload, null, 2)}`);
+                    setSyncLog([...logs]);
+
+                    const riwayatRes = await fetchWithAuth('/api/neofeeder', {
                  method: 'POST',
                  headers: { 'Content-Type': 'application/json' },
                  body: JSON.stringify({
                    action: 'InsertRiwayatPendidikanMahasiswa',
                    payload: {
-                     record: {
-                       id_mahasiswa: id_mahasiswa,
-                       nim: student.nim,
-                       id_jenis_daftar: student.idJenisDaftar || 1, // 1: Peserta didik baru
-                       id_jalur_daftar: student.idJalurDaftar || 4, // 4: Seleksi Mandiri
-                       id_periode_masuk: student.admissionPeriod || "20231",
-                       tanggal_daftar: student.tanggalLahir || "2023-08-01",
-                       id_perguruan_tinggi: "", // optional
-                       id_prodi: id_prodi,
-                       id_pembiayaan: student.idPembiayaan || 1, // 1: Mandiri
-                       biaya_masuk: student.biayaMasuk || 0
-                     }
+                     record: riwayatPayload
                    }
                  })
                });

@@ -132,6 +132,7 @@ export const ProgramStudi: React.FC = () => {
             <table className="w-full text-sm border-collapse">
               <thead className="bg-[#F9FAFB]">
                 <tr>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB]">ID Prodi</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB]">Kode Prodi</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB]">Nama Program Studi</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB]">Status</th>
@@ -141,7 +142,8 @@ export const ProgramStudi: React.FC = () => {
               <tbody className="bg-white divide-y divide-[#F3F4F6]">
                 {prodi.map((p, i) => (
                   <tr key={i} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#1F2937]">{p.kode_program_studi}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#1F2937]">{p.id_prodi}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{p.kode_program_studi}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{p.nama_program_studi}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{p.status}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{p.nama_jenjang_pendidikan}</td>
