@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { getOrCreateUser } from '../db/users.ts';
+import { db } from '../db/index.ts';
+import { users } from '../db/schema.ts';
+import { eq } from 'drizzle-orm';
 
 export interface AuthRequest extends Request {
   user?: any;
@@ -18,17 +20,33 @@ export const requireAuth = async (
 
   const token = authHeader.split('Bearer ')[1];
   try {
-    if (token !== 'secret-local-token') {
+    let tokenStr = '';
+    try {
+      tokenStr = Buffer.from(token, 'base64').toString('ascii');
+    } catch (e) {
+      throw new Error('Invalid token format');
+    }
+
+    if (!tokenStr.startsWith('user:')) {
       throw new Error('Invalid token');
     }
+
+    const uid = tokenStr.split('user:')[1];
     
-    // Sync to DB
-    const dbUser = await getOrCreateUser('local-eko', 'eko@local.dev');
+    // Fetch user from DB
+    const dbUser = await db.query.users.findFirst({
+      where: eq(users.uid, uid)
+    });
+    
+    if (!dbUser) {
+      throw new Error('User not found');
+    }
+
     req.dbUser = dbUser;
     
     next();
   } catch (error: any) {
-    if (error.message === 'Invalid token') {
+    if (error.message === 'Invalid token' || error.message === 'User not found') {
       return res.status(401).json({ error: 'Unauthorized: Invalid token' });
     }
     
@@ -36,7 +54,6 @@ export const requireAuth = async (
     if (error.cause) {
       console.error('Error cause:', error.cause);
     }
-    // Most likely a database connection or schema error
     return res.status(500).json({ error: 'Database Error: ' + (error.cause ? error.cause.message : error.message) });
   }
 };

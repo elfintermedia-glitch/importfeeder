@@ -20,10 +20,10 @@ export const Login: React.FC = () => {
   return (
     <div className="min-h-screen relative flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans overflow-hidden">
       {/* Background Styling mimicking a generated tech/academic background */}
-      <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#2563eb] opacity-90">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500 rounded-full blur-[120px] opacity-30 mix-blend-screen"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-cyan-400 rounded-full blur-[120px] opacity-20 mix-blend-screen"></div>
-        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-indigo-500 rounded-full blur-[100px] opacity-20 mix-blend-screen"></div>
+      <div className="absolute inset-0 z-0 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400 rounded-full blur-[120px] opacity-30 mix-blend-screen"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-cyan-400 rounded-full blur-[120px] opacity-30 mix-blend-screen"></div>
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-sky-300 rounded-full blur-[100px] opacity-20 mix-blend-screen"></div>
       </div>
       
       {/* Top Banner indicating Logos */}

@@ -22,6 +22,8 @@ import { DataPekerjaan } from './pages/DataPekerjaan.tsx';
 import { DataPenghasilan } from './pages/DataPenghasilan.tsx';
 import { DatabaseOps } from './pages/DatabaseOps.tsx';
 import { UpdateAplikasi } from './pages/UpdateAplikasi.tsx';
+import { Users } from './pages/Users.tsx';
+import { ImportKurikulum } from './pages/ImportKurikulum.tsx';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -52,6 +54,7 @@ const AppRoutes = () => {
       >
         <Route index element={<Dashboard />} />
         <Route path="students" element={<Students />} />
+        <Route path="import-kurikulum" element={<ImportKurikulum />} />
         <Route path="programs" element={<ProgramStudi />} />
         <Route path="periods" element={<DataPeriode />} />
         <Route path="dosen" element={<DataDosen />} />
@@ -64,6 +67,7 @@ const AppRoutes = () => {
         <Route path="database-ops" element={<DatabaseOps />} />
         <Route path="config" element={<Configuration />} />
         <Route path="update" element={<UpdateAplikasi />} />
+        <Route path="users" element={<Users />} />
       </Route>
     </Routes>
   );

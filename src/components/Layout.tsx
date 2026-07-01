@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Settings, Users, Database, ChevronDown, ChevronRight, Building, Calendar, Download, FileUp, Terminal } from 'lucide-react';
+import { LogOut, LayoutDashboard, Settings, Users, Database, ChevronDown, ChevronRight, Building, Calendar, Download, FileUp, Terminal, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 
 export const Layout: React.FC = () => {
@@ -8,6 +8,7 @@ export const Layout: React.FC = () => {
   const location = useLocation();
   const [dataMasterOpen, setDataMasterOpen] = useState(true);
   const [importDataOpen, setImportDataOpen] = useState(true);
+  const [superAdminOpen, setSuperAdminOpen] = useState(false);
 
   const navigation = [
     { name: 'Dashboard Utama', href: '/', icon: LayoutDashboard },
@@ -180,22 +181,21 @@ export const Layout: React.FC = () => {
                   <Users className="h-4 w-4" />
                   <span>Data Mahasiswa Baru</span>
                 </Link>
+                <Link
+                  to="/import-kurikulum"
+                  className={`flex items-center gap-[12px] pl-14 pr-6 py-2.5 text-sm transition-all border-l-4 ${
+                    location.pathname === '/import-kurikulum' 
+                      ? 'bg-[#1E293B] text-white border-blue-500' 
+                      : 'text-[#94A3B8] hover:bg-[#1E293B] hover:text-white border-transparent'
+                  }`}
+                >
+                  <FileUp className="h-4 w-4" />
+                  <span>Import Kurikulum</span>
+                </Link>
               </div>
             )}
           </div>
           
-          <Link
-            to="/database-ops"
-            className={`flex items-center gap-[12px] px-6 py-3 text-sm transition-all border-l-4 ${
-              location.pathname === '/database-ops' 
-                ? 'bg-[#334155] text-white border-blue-500' 
-                : 'text-[#94A3B8] hover:bg-[#334155] hover:text-white border-transparent'
-            }`}
-          >
-            <Terminal className="h-5 w-5" />
-            <span>Operasional Database</span>
-          </Link>
-
           <Link
             to="/config"
             className={`flex items-center gap-[12px] px-6 py-3 text-sm transition-all border-l-4 ${
@@ -208,17 +208,57 @@ export const Layout: React.FC = () => {
             <span>Konfigurasi Server</span>
           </Link>
 
-          <Link
-            to="/update"
-            className={`flex items-center gap-[12px] px-6 py-3 text-sm transition-all border-l-4 ${
-              location.pathname === '/update' 
-                ? 'bg-[#334155] text-white border-blue-500' 
-                : 'text-[#94A3B8] hover:bg-[#334155] hover:text-white border-transparent'
-            }`}
-          >
-            <Download className="h-5 w-5" />
-            <span>Update Aplikasi</span>
-          </Link>
+          {user?.role === 'Superadmin' && (
+            <div className="mt-2">
+              <button
+                onClick={() => setSuperAdminOpen(!superAdminOpen)}
+                className="w-full flex items-center justify-between px-6 py-3 text-sm text-[#94A3B8] hover:bg-[#334155] hover:text-white transition-all border-l-4 border-transparent cursor-pointer"
+              >
+                <div className="flex items-center gap-[12px]">
+                  <Shield className="h-5 w-5" />
+                  <span>Super Admin</span>
+                </div>
+                {superAdminOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </button>
+              {superAdminOpen && (
+                <div className="bg-[#0F172A] py-2">
+                  <Link
+                    to="/users"
+                    className={`flex items-center gap-[12px] pl-14 pr-6 py-2.5 text-sm transition-all border-l-4 ${
+                      location.pathname === '/users' 
+                        ? 'bg-[#1E293B] text-white border-blue-500' 
+                        : 'text-[#94A3B8] hover:bg-[#1E293B] hover:text-white border-transparent'
+                    }`}
+                  >
+                    <Users className="h-4 w-4" />
+                    <span>Manajemen Pengguna</span>
+                  </Link>
+                  <Link
+                    to="/database-ops"
+                    className={`flex items-center gap-[12px] pl-14 pr-6 py-2.5 text-sm transition-all border-l-4 ${
+                      location.pathname === '/database-ops' 
+                        ? 'bg-[#1E293B] text-white border-blue-500' 
+                        : 'text-[#94A3B8] hover:bg-[#1E293B] hover:text-white border-transparent'
+                    }`}
+                  >
+                    <Terminal className="h-4 w-4" />
+                    <span>Operasional Database</span>
+                  </Link>
+                  <Link
+                    to="/update"
+                    className={`flex items-center gap-[12px] pl-14 pr-6 py-2.5 text-sm transition-all border-l-4 ${
+                      location.pathname === '/update' 
+                        ? 'bg-[#1E293B] text-white border-blue-500' 
+                        : 'text-[#94A3B8] hover:bg-[#1E293B] hover:text-white border-transparent'
+                    }`}
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>Update Aplikasi</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
         </nav>
         
         <div className="p-6 border-t border-[#334155] text-[11px] text-[#64748B]">

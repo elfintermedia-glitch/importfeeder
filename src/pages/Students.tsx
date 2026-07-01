@@ -12,6 +12,7 @@ export const Students: React.FC = () => {
   const [syncing, setSyncing] = useState(false);
   const [syncLog, setSyncLog] = useState<string[]>([]);
   const [editingStudent, setEditingStudent] = useState<any | null>(null);
+  const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadProdi = async () => {
@@ -91,6 +92,7 @@ export const Students: React.FC = () => {
           nisn: row['NISN'] || row['nisn'] || '',
           npwp: row['NPWP'] || row['npwp'] || '',
           kewarganegaraan: row['Kewarganegaraan'] || row['kewarganegaraan'] || '',
+          tanggalDaftar: row['Tanggal Daftar'] || row['tanggal_daftar'] || '',
           jalan: row['Jalan'] || row['jalan'] || '',
           dusun: row['Dusun'] || row['dusun'] || '',
           rt: row['RT'] || row['rt'] || '',
@@ -159,7 +161,7 @@ export const Students: React.FC = () => {
     const wsData = [
       [
         'NIM', 'Nama Mahasiswa', 'Jenis Kelamin', 'Tempat Lahir', 'Tanggal Lahir',
-        'ID Agama', 'NIK', 'NISN', 'NPWP', 'Kewarganegaraan', 'Jalan', 'Dusun', 'RT', 'RW', 'Kelurahan', 'Kode Pos', 'ID Wilayah',
+        'ID Agama', 'NIK', 'NISN', 'NPWP', 'Kewarganegaraan', 'Tanggal Daftar', 'Jalan', 'Dusun', 'RT', 'RW', 'Kelurahan', 'Kode Pos', 'ID Wilayah',
         'ID Jenis Tinggal', 'ID Alat Transportasi', 'Telepon', 'No HP', 'Email', 'Penerima KPS', 'Nomor KPS',
         'NIK Ayah', 'Nama Ayah', 'Tanggal Lahir Ayah', 'ID Pendidikan Ayah', 'ID Pekerjaan Ayah', 'ID Penghasilan Ayah',
         'NIK Ibu', 'Nama Ibu Kandung', 'Tanggal Lahir Ibu', 'ID Pendidikan Ibu', 'ID Pekerjaan Ibu', 'ID Penghasilan Ibu',
@@ -169,7 +171,7 @@ export const Students: React.FC = () => {
       ],
       [
         '12345', 'Budi Santoso', 'L', 'Jakarta', '2000-01-01',
-        '1', '1234567890123456', '0012345678', '', 'ID', 'Jl. Merdeka', 'Dusun A', '1', '1', 'Gambir', '10110', '010000',
+        '1', '1234567890123456', '0012345678', '', 'ID', '2023-08-01', 'Jl. Merdeka', 'Dusun A', '1', '1', 'Gambir', '10110', '010000',
         '1', '1', '0211234567', '081234567890', 'budi@example.com', '0', '',
         '', 'Bapak Budi', '1970-01-01', '1', '1', '1',
         '', 'Ibu Budi', '1975-01-01', '1', '1', '1',
@@ -281,9 +283,6 @@ export const Students: React.FC = () => {
                 id_kebutuhan_khusus_ibu: parseInt(student.idKebutuhanKhususIbu || "0", 10)
         };
         
-        logs.push(`Payload Biodata: ${JSON.stringify(biodataPayload, null, 2)}`);
-        setSyncLog([...logs]);
-
         const res = await fetchWithAuth('/api/neofeeder', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -361,7 +360,7 @@ export const Students: React.FC = () => {
                       id_jenis_daftar: student.idJenisDaftar ? Number(student.idJenisDaftar) : 1,
                       id_jalur_daftar: student.idJalurDaftar ? Number(student.idJalurDaftar) : 4,
                       id_periode_masuk: String(student.admissionPeriod || "20231"),
-                      tanggal_daftar: String(student.tanggalLahir || "2023-08-01"),
+                      tanggal_daftar: String(student.tanggalDaftar || new Date().toISOString().split('T')[0]),
                       id_perguruan_tinggi: String(id_perguruan_tinggi),
                       id_prodi: String(id_prodi),
                       id_bidang_minat: "",
@@ -372,9 +371,6 @@ export const Students: React.FC = () => {
                       biaya_masuk: student.biayaMasuk ? Number(student.biayaMasuk) : 2000000
                     };
                     
-                    logs.push(`Payload Riwayat: ${JSON.stringify(riwayatPayload, null, 2)}`);
-                    setSyncLog([...logs]);
-
                     const riwayatRes = await fetchWithAuth('/api/neofeeder', {
                  method: 'POST',
                  headers: { 'Content-Type': 'application/json' },
@@ -442,13 +438,19 @@ export const Students: React.FC = () => {
     loadStudents();
   };
 
-  const handleDelete = async (nim: string) => {
-    if (!confirm(`Hapus data mahasiswa dengan NIM ${nim}?`)) return;
+  const confirmDelete = (nim: string) => {
+    setStudentToDelete(nim);
+  };
+
+  const executeDelete = async () => {
+    if (!studentToDelete) return;
     try {
-      await fetchWithAuth(`/api/students/${nim}`, { method: 'DELETE' });
+      await fetchWithAuth(`/api/students/${studentToDelete}`, { method: 'DELETE' });
       loadStudents();
     } catch (e) {
       console.error('Failed to delete student', e);
+    } finally {
+      setStudentToDelete(null);
     }
   };
 
@@ -537,6 +539,7 @@ export const Students: React.FC = () => {
                       <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">Jenis Kelamin</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">Tempat Lahir</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">Tanggal Lahir</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">Tanggal Daftar</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">Agama</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">NIK</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-[#6B7280] border-b border-[#E5E7EB] whitespace-nowrap">NISN</th>
@@ -572,6 +575,7 @@ export const Students: React.FC = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.jenisKelamin}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.tempatLahir}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.tanggalLahir}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.tanggalDaftar}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.idAgama}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.nik}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-[#374151]">{student.nisn}</td>
@@ -588,7 +592,7 @@ export const Students: React.FC = () => {
                             <button onClick={() => setEditingStudent(student)} className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded" title="Edit">
                               <Edit className="h-4 w-4" />
                             </button>
-                            <button onClick={() => handleDelete(student.nim)} className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded" title="Hapus">
+                            <button onClick={() => confirmDelete(student.nim)} className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded" title="Hapus">
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
@@ -694,6 +698,10 @@ export const Students: React.FC = () => {
                 <input type="text" value={editingStudent.tanggalLahir || ''} onChange={e => setEditingStudent({...editingStudent, tanggalLahir: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm text-sm" />
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Daftar (YYYY-MM-DD)</label>
+                <input type="text" value={editingStudent.tanggalDaftar || ''} onChange={e => setEditingStudent({...editingStudent, tanggalDaftar: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm text-sm" />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Periode Masuk (Contoh: 20231)</label>
                 <input type="text" value={editingStudent.admissionPeriod || ''} onChange={e => setEditingStudent({...editingStudent, admissionPeriod: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm text-sm" />
               </div>
@@ -736,6 +744,21 @@ export const Students: React.FC = () => {
                 <Save className="h-4 w-4 mr-2" />
                 Simpan
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {studentToDelete && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Konfirmasi Hapus</h3>
+              <p className="text-sm text-gray-500 mb-6">Apakah Anda yakin ingin menghapus data mahasiswa ini? Tindakan ini tidak dapat dibatalkan.</p>
+              <div className="flex justify-end space-x-3">
+                <button onClick={() => setStudentToDelete(null)} className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 text-sm font-medium transition-colors">Batal</button>
+                <button onClick={executeDelete} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium transition-colors">Hapus</button>
+              </div>
             </div>
           </div>
         </div>

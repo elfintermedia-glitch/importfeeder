@@ -6,6 +6,9 @@ export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   uid: text('uid').notNull().unique(),
   email: text('email').notNull(),
+  password: text('password'),
+  role: text('role').default('Admin'),
+  name: text('name'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -183,6 +186,21 @@ export const penghasilan = pgTable('penghasilan', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+export const kurikulum = pgTable('kurikulum', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
+  id_prodi: text('id_prodi').notNull(),
+  nama_kurikulum: text('nama_kurikulum').notNull(),
+  id_semester: text('id_semester').notNull(),
+  jumlah_sks_lulus: integer('jumlah_sks_lulus'),
+  jumlah_sks_wajib: integer('jumlah_sks_wajib'),
+  jumlah_sks_pilihan: integer('jumlah_sks_pilihan'),
+  status: text('status').default('Baru'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   configs: many(neofeederConfig),
   students: many(students),
@@ -195,6 +213,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   jalurMasuk: many(jalurMasuk),
   pekerjaan: many(pekerjaan),
   penghasilan: many(penghasilan),
+  kurikulum: many(kurikulum),
 }));
 
 export const configRelations = relations(neofeederConfig, ({ one }) => ({
@@ -270,6 +289,13 @@ export const pekerjaanRelations = relations(pekerjaan, ({ one }) => ({
 export const penghasilanRelations = relations(penghasilan, ({ one }) => ({
   user: one(users, {
     fields: [penghasilan.userId],
+    references: [users.id],
+  }),
+}));
+
+export const kurikulumRelations = relations(kurikulum, ({ one }) => ({
+  user: one(users, {
+    fields: [kurikulum.userId],
     references: [users.id],
   }),
 }));

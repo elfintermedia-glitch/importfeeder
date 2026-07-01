@@ -8,8 +8,8 @@ import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import { requireAuth } from "./src/middleware/auth.ts";
 import { db } from "./src/db/index.ts";
-import { neofeederConfig, students, prodi, periode, dosen, agama, wilayah, jenisDaftar, jalurMasuk, pekerjaan, penghasilan } from "./src/db/schema.ts";
-import { eq, sql } from "drizzle-orm";
+import { neofeederConfig, students, prodi, periode, dosen, agama, wilayah, jenisDaftar, jalurMasuk, pekerjaan, penghasilan, kurikulum, users } from "./src/db/schema.ts";
+import { eq, sql, and } from "drizzle-orm";
 
 async function startServer() {
   const app = express();
@@ -24,24 +24,48 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
+  // Seed Superadmin
+  try {
+    const adminExists = await db.query.users.findFirst({
+      where: eq(users.uid, "admin")
+    });
+    if (!adminExists) {
+      const adminPassHash = crypto.createHash('sha256').update("admin").digest('hex');
+      await db.insert(users).values({
+        uid: "admin",
+        email: "admin@local.dev",
+        password: adminPassHash,
+        name: "Super Admin",
+        role: "Superadmin"
+      });
+    }
+  } catch(e) {
+    console.error("Error seeding admin", e);
+  }
+
   app.post("/api/login", async (req, res) => {
     const { username, password } = req.body;
     
     // Hash input credentials using SHA-256 for comparison
-    const inputUserHash = crypto.createHash('sha256').update(username || '').digest('hex');
     const inputPassHash = crypto.createHash('sha256').update(password || '').digest('hex');
     
-    // Expected hashes for username and password
-    const expectedUserHash = "186cf774c97b60a1c106ef718d10970a6a06e06bef89553d9ae65d938a886eae";
-    const expectedPassHash = "ff0f7bbea275e3f9aea818cfdc486d0c835531521cb990ff2e9b96bb1d076a80"; 
-
-    if (inputUserHash === expectedUserHash && inputPassHash === expectedPassHash) {
-      res.json({
-        token: "secret-local-token",
-        user: { displayName: "Super Admin", uid: "local-eko" }
+    try {
+      const user = await db.query.users.findFirst({
+        where: eq(users.uid, username)
       });
-    } else {
-      res.status(401).json({ error: "Username atau password salah" });
+
+      if (user && user.password === inputPassHash) {
+        const token = Buffer.from(`user:${user.uid}`).toString('base64');
+        res.json({
+          token: token,
+          user: { displayName: user.name || user.uid, uid: user.uid, role: user.role }
+        });
+      } else {
+        res.status(401).json({ error: "Username atau password salah" });
+      }
+    } catch(err) {
+      console.error(err);
+      res.status(500).json({ error: "Internal error" });
     }
   });
 
@@ -49,11 +73,87 @@ async function startServer() {
     res.json({ user: req.dbUser });
   });
 
+  // User Management
+  app.get("/api/users", requireAuth, async (req: any, res) => {
+    if (req.dbUser.role !== 'Superadmin') {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    try {
+      const allUsers = await db.query.users.findMany({
+        orderBy: (users, { desc }) => [desc(users.createdAt)]
+      });
+      res.json(allUsers.map(u => ({ id: u.id, uid: u.uid, name: u.name, email: u.email, role: u.role })));
+    } catch (err) {
+      res.status(500).json({ error: "Error fetching users" });
+    }
+  });
+
+  app.post("/api/users", requireAuth, async (req: any, res) => {
+    if (req.dbUser.role !== 'Superadmin') {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const { uid, email, password, name, role } = req.body;
+    try {
+      const passHash = crypto.createHash('sha256').update(password || '').digest('hex');
+      await db.insert(users).values({
+        uid, email, password: passHash, name, role
+      });
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Error creating user" });
+    }
+  });
+
+  app.put("/api/users/:id", requireAuth, async (req: any, res) => {
+    if (req.dbUser.role !== 'Superadmin') {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const { id } = req.params;
+    const { uid, email, password, name, role } = req.body;
+    try {
+      const updateData: any = { uid, email, name, role };
+      if (password) {
+        updateData.password = crypto.createHash('sha256').update(password).digest('hex');
+      }
+      await db.update(users).set(updateData).where(eq(users.id, Number(id)));
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Error updating user" });
+    }
+  });
+
+  app.delete("/api/users/:id", requireAuth, async (req: any, res) => {
+    if (req.dbUser.role !== 'Superadmin') {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const { id } = req.params;
+    const userId = Number(id);
+    try {
+      await db.delete(neofeederConfig).where(eq(neofeederConfig.userId, userId));
+      await db.delete(students).where(eq(students.userId, userId));
+      await db.delete(prodi).where(eq(prodi.userId, userId));
+      await db.delete(periode).where(eq(periode.userId, userId));
+      await db.delete(dosen).where(eq(dosen.userId, userId));
+      await db.delete(agama).where(eq(agama.userId, userId));
+      await db.delete(wilayah).where(eq(wilayah.userId, userId));
+      await db.delete(jenisDaftar).where(eq(jenisDaftar.userId, userId));
+      await db.delete(jalurMasuk).where(eq(jalurMasuk.userId, userId));
+      await db.delete(pekerjaan).where(eq(pekerjaan.userId, userId));
+      await db.delete(penghasilan).where(eq(penghasilan.userId, userId));
+      await db.delete(kurikulum).where(eq(kurikulum.userId, userId));
+      
+      await db.delete(users).where(eq(users.id, userId));
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("Error deleting user:", err);
+      res.status(500).json({ error: "Error deleting user: " + err.message });
+    }
+  });
+
   app.get("/api/config", requireAuth, async (req: any, res) => {
-    const userId = req.dbUser.id;
     try {
       const config = await db.query.neofeederConfig.findFirst({
-        where: eq(neofeederConfig.userId, userId)
+        
       });
       res.json({ config });
     } catch (e) {
@@ -67,12 +167,12 @@ async function startServer() {
     const { url, username, password } = req.body;
     try {
       const existing = await db.query.neofeederConfig.findFirst({
-        where: eq(neofeederConfig.userId, userId)
+        
       });
       if (existing) {
         await db.update(neofeederConfig)
           .set({ url, username, password })
-          .where(eq(neofeederConfig.userId, userId));
+          ;
       } else {
         await db.insert(neofeederConfig)
           .values({ userId, url, username, password });
@@ -85,10 +185,9 @@ async function startServer() {
   });
 
   app.get("/api/prodi", requireAuth, async (req: any, res) => {
-    const userId = req.dbUser.id;
     try {
       const allProdi = await db.query.prodi.findMany({
-        where: eq(prodi.userId, userId),
+        
         orderBy: (prodi, { asc }) => [asc(prodi.kode_program_studi)]
       });
       res.json({ prodi: allProdi });
@@ -108,7 +207,7 @@ async function startServer() {
           where: eq(prodi.kode_program_studi, item.kode_program_studi)
         });
         
-        if (existing && existing.userId === userId) {
+        if (existing) {
           await db.update(prodi)
             .set({ 
               id_prodi: item.id_prodi,
@@ -136,16 +235,113 @@ async function startServer() {
   });
 
   app.get("/api/periode", requireAuth, async (req: any, res) => {
-    const userId = req.dbUser.id;
     try {
       const allPeriode = await db.query.periode.findMany({
-        where: eq(periode.userId, userId),
+        
         orderBy: (periode, { desc }) => [desc(periode.periode_pelaporan)]
       });
       res.json({ periode: allPeriode });
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: "Failed to fetch periode" });
+    }
+  });
+
+  app.get("/api/kurikulum", requireAuth, async (req: any, res) => {
+    try {
+      const allKurikulum = await db.query.kurikulum.findMany({
+        orderBy: (k, { asc }) => [asc(k.nama_kurikulum)]
+      });
+      res.json({ kurikulum: allKurikulum });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to fetch kurikulum" });
+    }
+  });
+
+  app.delete("/api/kurikulum", requireAuth, async (req: any, res) => {
+    try {
+      await db.delete(kurikulum).where(eq(kurikulum.userId, req.dbUser.id));
+      res.json({ success: true });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to delete all kurikulum" });
+    }
+  });
+
+  app.delete("/api/kurikulum/:id", requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await db.delete(kurikulum).where(and(eq(kurikulum.id, Number(id)), eq(kurikulum.userId, req.dbUser.id)));
+      res.json({ success: true });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to delete kurikulum" });
+    }
+  });
+
+  app.put("/api/kurikulum/:id", requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const data = req.body;
+      await db.update(kurikulum)
+        .set({
+          id_prodi: data.id_prodi,
+          nama_kurikulum: data.nama_kurikulum,
+          id_semester: data.id_semester,
+          jumlah_sks_lulus: data.jumlah_sks_lulus ? Number(data.jumlah_sks_lulus) : null,
+          jumlah_sks_wajib: data.jumlah_sks_wajib ? Number(data.jumlah_sks_wajib) : null,
+          jumlah_sks_pilihan: data.jumlah_sks_pilihan ? Number(data.jumlah_sks_pilihan) : null,
+          ...(data.status ? { status: data.status } : {})
+        })
+        .where(and(eq(kurikulum.id, Number(id)), eq(kurikulum.userId, req.dbUser.id)));
+      res.json({ success: true });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to update kurikulum" });
+    }
+  });
+
+  app.post("/api/kurikulum/bulk", requireAuth, async (req: any, res) => {
+    const userId = req.dbUser.id;
+    const { items } = req.body;
+    try {
+      for (const item of items) {
+        // Find if kurikulum exists by id_prodi and nama_kurikulum
+        const existing = await db.query.kurikulum.findFirst({
+          where: and(
+            eq(kurikulum.id_prodi, item.id_prodi),
+            eq(kurikulum.nama_kurikulum, item.nama_kurikulum)
+          )
+        });
+        
+        if (existing) {
+          await db.update(kurikulum)
+            .set({ 
+              id_semester: item.id_semester,
+              jumlah_sks_lulus: item.jumlah_sks_lulus ? Number(item.jumlah_sks_lulus) : null,
+              jumlah_sks_wajib: item.jumlah_sks_wajib ? Number(item.jumlah_sks_wajib) : null,
+              jumlah_sks_pilihan: item.jumlah_sks_pilihan ? Number(item.jumlah_sks_pilihan) : null,
+              ...(item.status ? { status: item.status } : {})
+            })
+            .where(eq(kurikulum.id, existing.id));
+        } else {
+          await db.insert(kurikulum).values({
+            userId,
+            id_prodi: item.id_prodi,
+            nama_kurikulum: item.nama_kurikulum,
+            id_semester: item.id_semester,
+            jumlah_sks_lulus: item.jumlah_sks_lulus ? Number(item.jumlah_sks_lulus) : null,
+            jumlah_sks_wajib: item.jumlah_sks_wajib ? Number(item.jumlah_sks_wajib) : null,
+            jumlah_sks_pilihan: item.jumlah_sks_pilihan ? Number(item.jumlah_sks_pilihan) : null,
+            ...(item.status ? { status: item.status } : {})
+          });
+        }
+      }
+      res.json({ success: true });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Failed to bulk add kurikulum" });
     }
   });
 
@@ -158,7 +354,7 @@ async function startServer() {
           where: eq(periode.id_prodi, item.id_prodi)
         });
         
-        if (existing && existing.userId === userId) {
+        if (existing) {
           await db.update(periode)
             .set({ 
               kode_prodi: item.kode_prodi,
@@ -190,10 +386,9 @@ async function startServer() {
   });
 
   app.get("/api/dosen", requireAuth, async (req: any, res) => {
-    const userId = req.dbUser.id;
     try {
       const allDosen = await db.query.dosen.findMany({
-        where: eq(dosen.userId, userId),
+        
         orderBy: (dosen, { asc }) => [asc(dosen.nama_dosen)]
       });
       res.json({ dosen: allDosen });
@@ -212,7 +407,7 @@ async function startServer() {
           where: eq(dosen.id_dosen, item.id_dosen)
         });
         
-        if (existing && existing.userId === userId) {
+        if (existing) {
           await db.update(dosen)
             .set({ 
               nama_dosen: item.nama_dosen,
@@ -242,10 +437,9 @@ async function startServer() {
   });
 
   app.get("/api/agama", requireAuth, async (req: any, res) => {
-    const userId = req.dbUser.id;
     try {
       const allAgama = await db.query.agama.findMany({
-        where: eq(agama.userId, userId),
+        
         orderBy: (agama, { asc }) => [asc(agama.id_agama)]
       });
       res.json({ agama: allAgama });
@@ -263,7 +457,7 @@ async function startServer() {
         return res.status(400).json({ error: "Invalid items array" });
       }
 
-      await db.delete(agama).where(eq(agama.userId, userId));
+      
       
       const chunkSize = 500;
       for (let i = 0; i < items.length; i += chunkSize) {
@@ -284,10 +478,9 @@ async function startServer() {
   });
 
   app.get("/api/wilayah", requireAuth, async (req: any, res) => {
-    const userId = req.dbUser.id;
     try {
       const allWilayah = await db.query.wilayah.findMany({
-        where: eq(wilayah.userId, userId),
+        
         orderBy: (wilayah, { asc }) => [asc(wilayah.nama_wilayah)]
       });
       res.json({ wilayah: allWilayah });
@@ -305,7 +498,7 @@ async function startServer() {
         return res.status(400).json({ error: "Invalid items array" });
       }
 
-      await db.delete(wilayah).where(eq(wilayah.userId, userId));
+      
       
       const chunkSize = 500;
       for (let i = 0; i < items.length; i += chunkSize) {
@@ -327,10 +520,9 @@ async function startServer() {
   });
 
   app.get("/api/jenis-daftar", requireAuth, async (req: any, res) => {
-    const userId = req.dbUser.id;
     try {
       const allJenisDaftar = await db.query.jenisDaftar.findMany({
-        where: eq(jenisDaftar.userId, userId),
+        
         orderBy: (jenisDaftar, { asc }) => [asc(jenisDaftar.nama_jenis_daftar)]
       });
       res.json({ jenis_daftar: allJenisDaftar });
@@ -348,7 +540,7 @@ async function startServer() {
         return res.status(400).json({ error: "Invalid items array" });
       }
 
-      await db.delete(jenisDaftar).where(eq(jenisDaftar.userId, userId));
+      
       
       const chunkSize = 500;
       for (let i = 0; i < items.length; i += chunkSize) {
@@ -369,10 +561,9 @@ async function startServer() {
   });
 
   app.get("/api/jalur-masuk", requireAuth, async (req: any, res) => {
-    const userId = req.dbUser.id;
     try {
       const allJalurMasuk = await db.query.jalurMasuk.findMany({
-        where: eq(jalurMasuk.userId, userId),
+        
         orderBy: (jalurMasuk, { asc }) => [asc(jalurMasuk.nama_jalur_masuk)]
       });
       res.json({ jalur_masuk: allJalurMasuk });
@@ -390,7 +581,7 @@ async function startServer() {
         return res.status(400).json({ error: "Invalid items array" });
       }
 
-      await db.delete(jalurMasuk).where(eq(jalurMasuk.userId, userId));
+      
       
       const chunkSize = 500;
       for (let i = 0; i < items.length; i += chunkSize) {
@@ -411,10 +602,9 @@ async function startServer() {
   });
 
   app.get("/api/pekerjaan", requireAuth, async (req: any, res) => {
-    const userId = req.dbUser.id;
     try {
       const allPekerjaan = await db.query.pekerjaan.findMany({
-        where: eq(pekerjaan.userId, userId),
+        
         orderBy: (pekerjaan, { asc }) => [asc(pekerjaan.nama_pekerjaan)]
       });
       res.json({ pekerjaan: allPekerjaan });
@@ -432,7 +622,7 @@ async function startServer() {
         return res.status(400).json({ error: "Invalid items array" });
       }
 
-      await db.delete(pekerjaan).where(eq(pekerjaan.userId, userId));
+      
       
       const chunkSize = 500;
       for (let i = 0; i < items.length; i += chunkSize) {
@@ -453,10 +643,9 @@ async function startServer() {
   });
 
   app.get("/api/penghasilan", requireAuth, async (req: any, res) => {
-    const userId = req.dbUser.id;
     try {
       const allPenghasilan = await db.query.penghasilan.findMany({
-        where: eq(penghasilan.userId, userId),
+        
         orderBy: (penghasilan, { asc }) => [asc(penghasilan.id_penghasilan)] // Order by id as it's usually numeric string
       });
       res.json({ penghasilan: allPenghasilan });
@@ -474,7 +663,7 @@ async function startServer() {
         return res.status(400).json({ error: "Invalid items array" });
       }
 
-      await db.delete(penghasilan).where(eq(penghasilan.userId, userId));
+      
       
       const chunkSize = 500;
       for (let i = 0; i < items.length; i += chunkSize) {
@@ -495,10 +684,9 @@ async function startServer() {
   });
 
   app.get("/api/students", requireAuth, async (req: any, res) => {
-    const userId = req.dbUser.id;
     try {
       const allStudents = await db.query.students.findMany({
-        where: eq(students.userId, userId),
+        
         orderBy: (students, { desc }) => [desc(students.createdAt)]
       });
       res.json({ students: allStudents });
@@ -533,7 +721,7 @@ async function startServer() {
           where: eq(students.nim, item.nim) // Assuming NIM is unique per student
         });
         // We should really handle this better but for MVP this is OK
-        if (existing && existing.userId === userId) {
+        if (existing) {
           await db.update(students)
             .set({ 
               name: item.name, 
@@ -589,10 +777,9 @@ async function startServer() {
   });
 
   app.delete("/api/students/:nim", requireAuth, async (req: any, res) => {
-    const userId = req.dbUser.id;
     const { nim } = req.params;
     try {
-      await db.delete(students).where(sql`${students.userId} = ${userId} AND ${students.nim} = ${nim}`);
+      await db.delete(students).where(eq(students.nim, nim));
       res.json({ success: true });
     } catch (e: any) {
       console.error(e);
@@ -601,7 +788,6 @@ async function startServer() {
   });
 
   app.put("/api/students/:nim", requireAuth, async (req: any, res) => {
-    const userId = req.dbUser.id;
     const { nim } = req.params;
     const updateData = { ...req.body };
     delete updateData.id;
@@ -613,7 +799,7 @@ async function startServer() {
     try {
       await db.update(students)
         .set(updateData)
-        .where(sql`${students.userId} = ${userId} AND ${students.nim} = ${nim}`);
+        .where(eq(students.nim, nim));
       res.json({ success: true });
     } catch (e: any) {
       console.error(e);
@@ -622,12 +808,11 @@ async function startServer() {
   });
 
   app.post("/api/students/status", requireAuth, async (req: any, res) => {
-    const userId = req.dbUser.id;
     const { nim, status } = req.body;
     try {
       await db.update(students)
         .set({ status })
-        .where(sql`${students.userId} = ${userId} AND ${students.nim} = ${nim}`);
+        .where(eq(students.nim, nim));
       res.json({ success: true });
     } catch (e: any) {
       console.error(e);
@@ -675,7 +860,7 @@ async function startServer() {
         WHERE table_schema = 'public' AND table_name = '${tableName}'
       `));
       
-      const rows = tablesResult.rows || tablesResult;
+      const rows: any = (tablesResult as any).rows || tablesResult;
       if (!rows || rows.length === 0) {
         return res.status(400).json({ error: "Table not found" });
       }
@@ -740,7 +925,7 @@ async function startServer() {
     
     try {
       const config = await db.query.neofeederConfig.findFirst({
-        where: eq(neofeederConfig.userId, userId)
+        
       });
       
       if (!config) {
@@ -748,7 +933,7 @@ async function startServer() {
       }
 
       // First get token (GetToken)
-      const tokenRes = await fetch(config.url, {
+      const tokenRes = await fetch(config.url as string, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -766,7 +951,7 @@ async function startServer() {
       const token = tokenData.data.token;
       
       // Perform action
-      const actionRes = await fetch(config.url, {
+      const actionRes = await fetch(config.url as string, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
