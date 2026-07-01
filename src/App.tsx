@@ -11,6 +11,8 @@ import { Layout } from './components/Layout.tsx';
 import { Dashboard } from './pages/Dashboard.tsx';
 import { Configuration } from './pages/Configuration.tsx';
 import { Students } from './pages/Students.tsx';
+import { ImportUpdateMahasiswa } from './pages/ImportUpdateMahasiswa.tsx';
+import { ImportHistoryMahasiswa } from './pages/ImportHistoryMahasiswa.tsx';
 import { ProgramStudi } from './pages/ProgramStudi.tsx';
 import { DataPeriode } from './pages/DataPeriode.tsx';
 import { DataDosen } from './pages/DataDosen.tsx';
@@ -54,6 +56,8 @@ const AppRoutes = () => {
       >
         <Route index element={<Dashboard />} />
         <Route path="students" element={<Students />} />
+        <Route path="students/update" element={<ImportUpdateMahasiswa />} />
+        <Route path="students/history" element={<ImportHistoryMahasiswa />} />
         <Route path="import-kurikulum" element={<ImportKurikulum />} />
         <Route path="programs" element={<ProgramStudi />} />
         <Route path="periods" element={<DataPeriode />} />

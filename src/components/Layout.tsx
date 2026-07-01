@@ -8,6 +8,7 @@ export const Layout: React.FC = () => {
   const location = useLocation();
   const [dataMasterOpen, setDataMasterOpen] = useState(true);
   const [importDataOpen, setImportDataOpen] = useState(true);
+  const [importMahasiswaOpen, setImportMahasiswaOpen] = useState(false);
   const [superAdminOpen, setSuperAdminOpen] = useState(false);
 
   const navigation = [
@@ -170,17 +171,55 @@ export const Layout: React.FC = () => {
             </button>
             {importDataOpen && (
               <div className="bg-[#0F172A] py-2">
-                <Link
-                  to="/students"
-                  className={`flex items-center gap-[12px] pl-14 pr-6 py-2.5 text-sm transition-all border-l-4 ${
-                    location.pathname === '/students' 
-                      ? 'bg-[#1E293B] text-white border-blue-500' 
-                      : 'text-[#94A3B8] hover:bg-[#1E293B] hover:text-white border-transparent'
-                  }`}
-                >
-                  <Users className="h-4 w-4" />
-                  <span>Data Mahasiswa Baru</span>
-                </Link>
+                <div>
+                  <button
+                    onClick={() => setImportMahasiswaOpen(!importMahasiswaOpen)}
+                    className="w-full flex items-center justify-between px-6 py-2.5 text-sm text-[#94A3B8] hover:bg-[#1E293B] hover:text-white transition-all border-l-4 border-transparent cursor-pointer"
+                  >
+                    <div className="flex items-center gap-[12px] pl-8">
+                      <Users className="h-4 w-4" />
+                      <span>Import Mahasiswa</span>
+                    </div>
+                    {importMahasiswaOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  </button>
+                  {importMahasiswaOpen && (
+                    <div className="bg-[#0B1120] py-1">
+                      <Link
+                        to="/students"
+                        className={`flex items-center gap-[12px] pl-[72px] pr-6 py-2 text-sm transition-all border-l-4 ${
+                          location.pathname === '/students' 
+                            ? 'bg-[#1E293B] text-white border-blue-500' 
+                            : 'text-[#94A3B8] hover:bg-[#1E293B] hover:text-white border-transparent'
+                        }`}
+                      >
+                        <Users className="h-4 w-4" />
+                        <span>Import Baru</span>
+                      </Link>
+                      <Link
+                        to="/students/update"
+                        className={`flex items-center gap-[12px] pl-[72px] pr-6 py-2 text-sm transition-all border-l-4 ${
+                          location.pathname === '/students/update' 
+                            ? 'bg-[#1E293B] text-white border-blue-500' 
+                            : 'text-[#94A3B8] hover:bg-[#1E293B] hover:text-white border-transparent'
+                        }`}
+                      >
+                        <Users className="h-4 w-4" />
+                        <span>Import Update Mahasiswa</span>
+                      </Link>
+                      <Link
+                        to="/students/history"
+                        className={`flex items-center gap-[12px] pl-[72px] pr-6 py-2 text-sm transition-all border-l-4 ${
+                          location.pathname === '/students/history' 
+                            ? 'bg-[#1E293B] text-white border-blue-500' 
+                            : 'text-[#94A3B8] hover:bg-[#1E293B] hover:text-white border-transparent'
+                        }`}
+                      >
+                        <Users className="h-4 w-4" />
+                        <span>Import History Mahasiswa</span>
+                      </Link>
+                    </div>
+                  )}
+                </div>
                 <Link
                   to="/import-kurikulum"
                   className={`flex items-center gap-[12px] pl-14 pr-6 py-2.5 text-sm transition-all border-l-4 ${
